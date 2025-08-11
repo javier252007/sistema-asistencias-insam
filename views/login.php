@@ -10,11 +10,13 @@
   <div class="card">
     <h2>Login</h2>
     <h3>Bienvenido</h3>
-    <?php if (!empty(\$error)): ?>
-      <div class="error"><?= htmlspecialchars(\$error) ?></div>
-    <?php endif ?>
+
+    <?php if (!empty($error)): ?>
+      <div class="error"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
+
     <form id="loginForm" method="post" action="index.php?action=login">
-      <input type="text" name="usuario" placeholder="Usuario" required>
+      <input type="text" name="usuario" placeholder="Usuario" required autofocus>
       <input type="password" name="contrasena" placeholder="Contraseña" required>
       <button type="submit">Continuar</button>
     </form>
