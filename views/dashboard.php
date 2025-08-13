@@ -15,7 +15,7 @@
       <?php
         // Cada clave del array es la "action" que esperará el router (public/index.php)
         $all = [
-          'estudiantes_create' => [
+          'estudiantes_index' => [
             'title' => 'Estudiantes',
             'desc'  => 'Registrar y gestionar estudiantes',
             'icon'  => '🎓',

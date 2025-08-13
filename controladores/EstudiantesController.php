@@ -1,6 +1,6 @@
 <?php
 // controladores/EstudiantesController.php
-// Admin-only: formulario y registro de estudiante (personas + estudiantes)
+// Admin-only: formulario + listado + registro de estudiante (personas + estudiantes)
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../modelos/database.php';
@@ -21,6 +21,24 @@ class EstudiantesController {
         }
     }
 
+    // NUEVO: Listado con búsqueda y paginación
+    public function index(): void {
+        $this->requireAdmin();
+
+        // Parámetros de UI
+        $q        = trim($_GET['q'] ?? '');       // buscar por nombre/NIE
+        $page     = max(1, (int)($_GET['page'] ?? 1));
+        $per_page = 10;
+        $offset   = ($page - 1) * $per_page;
+
+        // Estos métodos los añadimos en el modelo en el siguiente paso
+        $total = $this->model->contar($q);
+        $rows  = $this->model->listar($q, $per_page, $offset);
+        $pages = max(1, (int)ceil($total / $per_page));
+
+        require __DIR__ . '/../views/Estudiantes/index.php';
+    }
+
     public function create(): void {
         $this->requireAdmin();
         $flash = $_SESSION['flash'] ?? null;
@@ -32,13 +50,16 @@ class EstudiantesController {
         $this->requireAdmin();
 
         $data = [
+            // personas
             'nombre'           => trim($_POST['nombre'] ?? ''),
             'fecha_nacimiento' => $_POST['fecha_nacimiento'] ?? null,
             'telefono'         => trim($_POST['telefono'] ?? ''),
             'correo'           => trim($_POST['correo'] ?? ''),
             'direccion'        => trim($_POST['direccion'] ?? ''),
+            // estudiantes
             'NIE'              => trim($_POST['NIE'] ?? ''),
             'estado'           => trim($_POST['estado'] ?? 'activo'),
+            // extra (archivo en /public/img/estudiantes)
             'foto'             => null,
         ];
 
@@ -52,6 +73,7 @@ class EstudiantesController {
             $errores[] = 'El NIE ya está registrado.';
         }
 
+        // Foto (opcional)
         if (!empty($_FILES['foto']['name'])) {
             $file = $_FILES['foto'];
             if ($file['error'] === UPLOAD_ERR_OK) {
@@ -85,10 +107,12 @@ class EstudiantesController {
         $id = $this->model->crearPersonaYEstudiante($data);
         if ($id) {
             $_SESSION['flash'] = ['type'=>'success', 'messages'=>['Estudiante registrado con éxito.']];
+            // UX: volver al listado para ver el nuevo registro
+            header('Location: index.php?action=estudiantes_index');
         } else {
             $_SESSION['flash'] = ['type'=>'error', 'messages'=>['No se pudo registrar el estudiante.']];
+            header('Location: index.php?action=estudiantes_create');
         }
-        header('Location: index.php?action=estudiantes_create');
         exit;
     }
 }

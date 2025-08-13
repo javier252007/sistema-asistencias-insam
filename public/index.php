@@ -47,18 +47,24 @@ switch ($action) {
         (new DashboardController())->index();
         break;
 
-    // --- Estudiantes (admin) ---
-    case 'estudiantes_create':
-        (new EstudiantesController())->create();
+  
+   // --- Estudiantes (admin) ---
+     case 'estudiantes_index':
+      (new EstudiantesController())->index();   // ← LISTADO
         break;
 
-    case 'estudiantes_store':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            (new EstudiantesController())->store();
-        } else {
-            header('Location: index.php?action=estudiantes_create');
-        }
-        break;
+       case 'estudiantes_create':
+         (new EstudiantesController())->create();  // ← FORMULARIO
+           break;
+
+            case 'estudiantes_store':
+             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+             (new EstudiantesController())->store();  // ← GUARDAR
+    } else {
+        header('Location: index.php?action=estudiantes_create'); // fallback correcto
+    }
+    break;
+
 
     // --- Docentes (placeholder mientras no haya controlador) ---
     case 'docentes_index':
