@@ -14,18 +14,17 @@ class AuthController {
     }
 
     public function showLogin(): void {
-        // Muestra el formulario
         $error = $_SESSION['error'] ?? '';
         unset($_SESSION['error']);
         require __DIR__ . '/../views/login.php';
     }
 
     public function login(): void {
-        $usuario    = $_POST['usuario']    ?? '';
+        $usuario    = trim($_POST['usuario'] ?? '');
         $contrasena = $_POST['contrasena'] ?? '';
 
-        if (empty($usuario) || empty($contrasena)) {
-            $_SESSION['error'] = 'Por favor completa todos los campos.';
+        if ($usuario === '' || $contrasena === '') {
+            $_SESSION['error'] = 'Completa usuario y contraseña.';
             header('Location: index.php?action=login');
             exit;
         }
@@ -41,5 +40,14 @@ class AuthController {
             header('Location: index.php?action=login');
             exit;
         }
+    }
+
+    public function logout(): void {
+        session_unset();
+        session_destroy();
+        session_start();
+        $_SESSION['error'] = 'Sesión cerrada correctamente.';
+        header('Location: index.php?action=login');
+        exit;
     }
 }

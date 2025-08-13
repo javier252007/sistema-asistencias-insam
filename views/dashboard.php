@@ -4,7 +4,6 @@
 <head>
   <meta charset="UTF-8">
   <title>Dashboard INSAM</title>
-  <!-- Asegúrate de que el css está en public/css/dashboard.css -->
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
 <body>
@@ -14,20 +13,18 @@
 
     <div class="cards-wrap">
       <?php
-      // Definimos las tarjetas con su acción, título, descripción e icono
-      $cards = [
-        'gestionarDocentes'    => ['title'=>'Docentes',    'desc'=>'Agregar o modificar docentes',    'icon'=>'👩‍🏫'],
-        'gestionarGrupos'      => ['title'=>'Grupos',      'desc'=>'Crear y asignar secciones',      'icon'=>'🏷️'],
-        'gestionarEstudiantes' => ['title'=>'Estudiantes', 'desc'=>'Registrar o editar alumnos',      'icon'=>'🎓'],
-        'gestionarUsuarios'    => ['title'=>'Usuarios',    'desc'=>'Administrar cuentas y roles',     'icon'=>'👤'],
-        'gestionarClases'      => ['title'=>'Clases',      'desc'=>'Configurar horarios y asignaturas','icon'=>'📚'],
-      ];
+        $all = [
+          'asistencia' => ['title'=>'Asistencias','desc'=>'Registrar y consultar asistencias','icon'=>'🗓️','enabled_roles'=>['admin','docente']],
+          'usuarios'   => ['title'=>'Usuarios','desc'=>'Gestión de usuarios y roles','icon'=>'👥','enabled_roles'=>['admin']],
+          'reportes'   => ['title'=>'Reportes','desc'=>'Estadísticas e informes','icon'=>'📈','enabled_roles'=>['admin','docente','orientador','directora']],
+          // La tarjeta de Estudiantes debe llevar a la acción estudiantes_create
+          'estudiantes_create'=> ['title'=>'Estudiantes','desc'=>'Registrar y gestionar estudiantes','icon'=>'🎓','enabled_roles'=>['admin']],
+        ];
 
-      foreach ($cards as $action => $info):
-        // Solo admin ve todas; docente solo 'gestionarClases'
-        $enabled = ($rol === 'admin') || ($rol === 'docente' && $action === 'gestionarClases');
-        $cls     = $enabled ? 'card' : 'card disabled';
-        $href    = $enabled ? "index.php?action={$action}" : '#';
+        foreach ($all as $action => $info):
+          $enabled = in_array($rol, $info['enabled_roles'], true);
+          $cls     = 'card' . ($enabled ? '' : ' disabled');
+          $href    = $enabled ? "index.php?action={$action}" : '#';
       ?>
         <a class="<?= $cls ?>" href="<?= $href ?>" tabindex="<?= $enabled ? '0' : '-1' ?>">
           <div class="card-icon"><?= $info['icon'] ?></div>
@@ -37,7 +34,7 @@
       <?php endforeach; ?>
     </div>
 
-    <a class="logout" href="logout.php">Cerrar sesión</a>
+    <a class="logout" href="index.php?action=logout">Cerrar sesión</a>
   </div>
 </body>
 </html>
