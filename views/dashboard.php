@@ -13,12 +13,44 @@
 
     <div class="cards-wrap">
       <?php
+        // Cada clave del array es la "action" que esperará el router (public/index.php)
         $all = [
-          'asistencia' => ['title'=>'Asistencias','desc'=>'Registrar y consultar asistencias','icon'=>'🗓️','enabled_roles'=>['admin','docente']],
-          'usuarios'   => ['title'=>'Usuarios','desc'=>'Gestión de usuarios y roles','icon'=>'👥','enabled_roles'=>['admin']],
-          'reportes'   => ['title'=>'Reportes','desc'=>'Estadísticas e informes','icon'=>'📈','enabled_roles'=>['admin','docente','orientador','directora']],
-          // La tarjeta de Estudiantes debe llevar a la acción estudiantes_create
-          'estudiantes_create'=> ['title'=>'Estudiantes','desc'=>'Registrar y gestionar estudiantes','icon'=>'🎓','enabled_roles'=>['admin']],
+          'estudiantes_create' => [
+            'title' => 'Estudiantes',
+            'desc'  => 'Registrar y gestionar estudiantes',
+            'icon'  => '🎓',
+            'enabled_roles' => ['admin']
+          ],
+          'docentes_index' => [
+            'title' => 'Docentes',
+            'desc'  => 'Listado y gestión de docentes',
+            'icon'  => '👨‍🏫',
+            'enabled_roles' => ['admin']
+          ],
+          'grupos_index' => [
+            'title' => 'Grupos',
+            'desc'  => 'Secciones, grados y asignación',
+            'icon'  => '👥',
+            'enabled_roles' => ['admin']
+          ],
+          'usuarios_index' => [
+            'title' => 'Usuarios',
+            'desc'  => 'Cuentas, roles y permisos',
+            'icon'  => '🧑‍💻',
+            'enabled_roles' => ['admin']
+          ],
+          'clases_index' => [
+            'title' => 'Clases',
+            'desc'  => 'Horario y asignaturas',
+            'icon'  => '📚',
+            'enabled_roles' => ['admin']
+          ],
+          'reportes' => [
+            'title' => 'Reportes',
+            'desc'  => 'Estadísticas e informes',
+            'icon'  => '📈',
+            'enabled_roles' => ['admin','docente','orientador','directora']
+          ],
         ];
 
         foreach ($all as $action => $info):
@@ -28,8 +60,8 @@
       ?>
         <a class="<?= $cls ?>" href="<?= $href ?>" tabindex="<?= $enabled ? '0' : '-1' ?>">
           <div class="card-icon"><?= $info['icon'] ?></div>
-          <h3><?= $info['title'] ?></h3>
-          <p><?= $info['desc'] ?></p>
+          <h3><?= htmlspecialchars($info['title']) ?></h3>
+          <p><?= htmlspecialchars($info['desc']) ?></p>
         </a>
       <?php endforeach; ?>
     </div>
