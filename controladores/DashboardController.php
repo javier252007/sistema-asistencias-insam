@@ -2,14 +2,18 @@
 // controladores/DashboardController.php
 
 class DashboardController {
-    public function index(): void {
-        // Si no hay sesión iniciada, redirige al login
+    private function requireLogin(): void {
         if (!isset($_SESSION['user_id'])) {
-            header('Location: index.php');
+            // Redirige explícitamente al login del router
+            header('Location: index.php?action=login');
             exit;
         }
-        // Recupera el rol y carga la vista
-        $rol = $_SESSION['rol'];
+    }
+
+    public function index(): void {
+        $this->requireLogin();
+        // Evita notice si por alguna razón no está seteado el rol
+        $rol = $_SESSION['rol'] ?? 'invitado';
         require __DIR__ . '/../views/dashboard.php';
     }
 }

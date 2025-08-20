@@ -13,7 +13,7 @@
 
     <div class="cards-wrap">
       <?php
-        // Cada clave del array es la "action" que esperará el router (public/index.php)
+        // Cada clave es la "action" que esperará el router (public/index.php)
         $all = [
           'estudiantes_index' => [
             'title' => 'Estudiantes',

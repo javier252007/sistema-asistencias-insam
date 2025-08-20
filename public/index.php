@@ -11,6 +11,8 @@ require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../controladores/AuthController.php';
 require_once __DIR__ . '/../controladores/DashboardController.php';
 require_once __DIR__ . '/../controladores/EstudiantesController.php';
+require_once __DIR__ . '/../controladores/DocentesController.php';
+
 
 // Si ya tienes controladores reales para estos módulos, descomenta:
 // require_once __DIR__ . '/../controladores/DocentesController.php';
@@ -48,29 +50,82 @@ switch ($action) {
         break;
 
   
-   // --- Estudiantes (admin) ---
-     case 'estudiantes_index':
-      (new EstudiantesController())->index();   // ← LISTADO
-        break;
 
-       case 'estudiantes_create':
-         (new EstudiantesController())->create();  // ← FORMULARIO
-           break;
+// --- Estudiantes (admin) ---
+case 'estudiantes_index':
+    (new EstudiantesController())->index();
+    break;
 
-            case 'estudiantes_store':
-             if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-             (new EstudiantesController())->store();  // ← GUARDAR
+case 'estudiantes_create':
+    (new EstudiantesController())->create();
+    break;
+
+case 'estudiantes_store':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new EstudiantesController())->store();
     } else {
-        header('Location: index.php?action=estudiantes_create'); // fallback correcto
+        header('Location: index.php?action=estudiantes_create');
+    }
+    break;
+
+case 'estudiantes_edit':
+    (new EstudiantesController())->edit();
+    break;
+
+case 'estudiantes_update':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new EstudiantesController())->update();
+    } else {
+        header('Location: index.php?action=estudiantes_index');
+    }
+    break;
+
+case 'estudiantes_destroy':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new EstudiantesController())->destroy();
+    } else {
+        header('Location: index.php?action=estudiantes_index');
     }
     break;
 
 
-    // --- Docentes (placeholder mientras no haya controlador) ---
-    case 'docentes_index':
-        require_admin();
-        require __DIR__ . '/../views/Docentes/index.php';
-        break;
+// --- Docentes (admin) ---
+case 'docentes_index':
+    (new DocentesController())->index();
+    break;
+
+case 'docentes_create':
+    (new DocentesController())->create();
+    break;
+
+case 'docentes_store':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new DocentesController())->store();
+    } else {
+        header('Location: index.php?action=docentes_create');
+    }
+    break;
+
+case 'docentes_edit':
+    (new DocentesController())->edit();
+    break;
+
+case 'docentes_update':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new DocentesController())->update();
+    } else {
+        header('Location: index.php?action=docentes_index');
+    }
+    break;
+
+case 'docentes_destroy':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new DocentesController())->destroy(); // desactivar/activar
+    } else {
+        header('Location: index.php?action=docentes_index');
+    }
+    break;
+
 
     // --- Grupos (placeholder) ---
     case 'grupos_index':

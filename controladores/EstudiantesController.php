@@ -1,7 +1,5 @@
 <?php
 // controladores/EstudiantesController.php
-// Admin-only: formulario + listado + registro de estudiante (personas + estudiantes)
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../modelos/database.php';
 require_once __DIR__ . '/../modelos/Estudiante.php';
@@ -16,22 +14,17 @@ class EstudiantesController {
 
     private function requireAdmin(): void {
         if (!isset($_SESSION['user_id']) || ($_SESSION['rol'] ?? '') !== 'admin') {
-            header('Location: index.php?action=login');
-            exit;
+            header('Location: index.php?action=login'); exit;
         }
     }
 
-    // NUEVO: Listado con búsqueda y paginación
     public function index(): void {
         $this->requireAdmin();
-
-        // Parámetros de UI
-        $q        = trim($_GET['q'] ?? '');       // buscar por nombre/NIE
+        $q        = trim($_GET['q'] ?? '');
         $page     = max(1, (int)($_GET['page'] ?? 1));
         $per_page = 10;
         $offset   = ($page - 1) * $per_page;
 
-        // Estos métodos los añadimos en el modelo en el siguiente paso
         $total = $this->model->contar($q);
         $rows  = $this->model->listar($q, $per_page, $offset);
         $pages = max(1, (int)ceil($total / $per_page));
@@ -41,78 +34,104 @@ class EstudiantesController {
 
     public function create(): void {
         $this->requireAdmin();
-        $flash = $_SESSION['flash'] ?? null;
-        unset($_SESSION['flash']);
         require __DIR__ . '/../views/Estudiantes/create.php';
     }
 
     public function store(): void {
         $this->requireAdmin();
-
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?action=estudiantes_index'); exit;
+        }
         $data = [
-            // personas
             'nombre'           => trim($_POST['nombre'] ?? ''),
             'fecha_nacimiento' => $_POST['fecha_nacimiento'] ?? null,
             'telefono'         => trim($_POST['telefono'] ?? ''),
             'correo'           => trim($_POST['correo'] ?? ''),
             'direccion'        => trim($_POST['direccion'] ?? ''),
-            // estudiantes
             'NIE'              => trim($_POST['NIE'] ?? ''),
-            'estado'           => trim($_POST['estado'] ?? 'activo'),
-            // extra (archivo en /public/img/estudiantes)
-            'foto'             => null,
+            'estado'           => $_POST['estado'] ?? 'activo',
         ];
 
         $errores = [];
-        if ($data['nombre'] === '') $errores[] = 'El nombre completo es obligatorio.';
+        if ($data['nombre'] === '') $errores[] = 'El nombre es obligatorio.';
         if ($data['NIE'] === '')    $errores[] = 'El NIE es obligatorio.';
-        if ($data['correo'] !== '' && !filter_var($data['correo'], FILTER_VALIDATE_EMAIL)) {
-            $errores[] = 'Correo inválido.';
-        }
         if ($data['NIE'] !== '' && $this->model->existeNIE($data['NIE'])) {
-            $errores[] = 'El NIE ya está registrado.';
+            $errores[] = 'El NIE ya existe.';
         }
 
-        // Foto (opcional)
-        if (!empty($_FILES['foto']['name'])) {
-            $file = $_FILES['foto'];
-            if ($file['error'] === UPLOAD_ERR_OK) {
-                $allowed = ['image/jpeg'=>'jpg', 'image/png'=>'png', 'image/webp'=>'webp'];
-                $mime = mime_content_type($file['tmp_name']);
-                if (!isset($allowed[$mime])) {
-                    $errores[] = 'Formato de imagen no permitido (usa JPG/PNG/WEBP).';
-                } else {
-                    $destDir = __DIR__ . '/../public/img/estudiantes';
-                    if (!is_dir($destDir)) @mkdir($destDir, 0777, true);
-                    $ext = $allowed[$mime];
-                    $basename = uniqid('est_', true) . '.' . $ext;
-                    $destPath = $destDir . '/' . $basename;
-                    if (!move_uploaded_file($file['tmp_name'], $destPath)) {
-                        $errores[] = 'No se pudo guardar la foto.';
-                    } else {
-                        $data['foto'] = 'img/estudiantes/' . $basename;
-                    }
-                }
-            } elseif ($file['error'] !== UPLOAD_ERR_NO_FILE) {
-                $errores[] = 'Error al subir la foto.';
-            }
-        }
-
-        if (!empty($errores)) {
-            $_SESSION['flash'] = ['type'=>'error', 'messages'=>$errores, 'old'=>$data];
-            header('Location: index.php?action=estudiantes_create');
-            exit;
+        if ($errores) {
+            $_SESSION['flash'] = ['type'=>'error','messages'=>$errores];
+            header('Location: index.php?action=estudiantes_create'); exit;
         }
 
         $id = $this->model->crearPersonaYEstudiante($data);
-        if ($id) {
-            $_SESSION['flash'] = ['type'=>'success', 'messages'=>['Estudiante registrado con éxito.']];
-            // UX: volver al listado para ver el nuevo registro
-            header('Location: index.php?action=estudiantes_index');
-        } else {
-            $_SESSION['flash'] = ['type'=>'error', 'messages'=>['No se pudo registrar el estudiante.']];
-            header('Location: index.php?action=estudiantes_create');
+        $_SESSION['flash'] = $id
+            ? ['type'=>'success','messages'=>['Estudiante registrado.']]
+            : ['type'=>'error','messages'=>['No se pudo registrar.']];
+        header('Location: index.php?action=estudiantes_index'); exit;
+    }
+
+    public function edit(): void {
+        $this->requireAdmin();
+        $id = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) { header('Location: index.php?action=estudiantes_index'); exit; }
+        $est = $this->model->obtenerPorId($id);
+        require __DIR__ . '/../views/Estudiantes/edit.php';
+    }
+
+    public function update(): void {
+        $this->requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?action=estudiantes_index'); exit;
         }
-        exit;
+        $data = [
+            'id'               => (int)($_POST['id'] ?? 0),
+            'persona_id'       => (int)($_POST['persona_id'] ?? 0),
+            'nombre'           => trim($_POST['nombre'] ?? ''),
+            'fecha_nacimiento' => $_POST['fecha_nacimiento'] ?? null,
+            'telefono'         => trim($_POST['telefono'] ?? ''),
+            'correo'           => trim($_POST['correo'] ?? ''),
+            'direccion'        => trim($_POST['direccion'] ?? ''),
+            'NIE'              => trim($_POST['NIE'] ?? ''),
+            'estado'           => $_POST['estado'] ?? 'activo',
+        ];
+
+        $errores = [];
+        if ($data['id'] <= 0 || $data['persona_id'] <= 0) $errores[] = 'ID inválido.';
+        if ($data['nombre'] === '') $errores[] = 'El nombre es obligatorio.';
+        if ($data['NIE'] === '') $errores[] = 'El NIE es obligatorio.';
+        if ($data['NIE'] !== '' && $this->model->nieUsadoPorOtro($data['NIE'], $data['id'])) {
+            $errores[] = 'El NIE ya está registrado para otro estudiante.';
+        }
+
+        if ($errores) {
+            $_SESSION['flash'] = ['type'=>'error','messages'=>$errores];
+            header('Location: index.php?action=estudiantes_edit&id=' . $data['id']); exit;
+        }
+
+        $ok = $this->model->actualizarPersonaYEstudiante($data);
+        $_SESSION['flash'] = $ok
+            ? ['type'=>'success','messages'=>['Estudiante actualizado.']]
+            : ['type'=>'error','messages'=>['No se pudo actualizar.']];
+
+        header('Location: index.php?action=estudiantes_index'); exit;
+    }
+
+    public function destroy(): void {
+        $this->requireAdmin();
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: index.php?action=estudiantes_index'); exit;
+        }
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) { header('Location: index.php?action=estudiantes_index'); exit; }
+
+        // Borrado físico definitivo
+        $ok = $this->model->eliminar($id);
+
+        $_SESSION['flash'] = $ok
+            ? ['type'=>'success','messages'=>['Estudiante eliminado permanentemente.']]
+            : ['type'=>'error','messages'=>['No se pudo eliminar. Revisa dependencias o FKs.']];
+
+        header('Location: index.php?action=estudiantes_index'); exit;
     }
 }

@@ -1,35 +1,26 @@
+<?php /* views/Docentes/create.php */ ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Registrar Estudiante</title>
+  <title>Registrar Docente</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/estudiantes.css">
+  <link rel="stylesheet" href="css/docentes.css">
 </head>
 <body>
   <div class="container">
-    <h1>Estudiantes — Registrar</h1>
+    <h1>Docentes — Registrar</h1>
 
     <?php if (!empty($flash)): ?>
       <?php if ($flash['type'] === 'error'): ?>
-        <div class="alert error">
-          <ul>
-            <?php foreach ($flash['messages'] as $m): ?>
-              <li><?= htmlspecialchars($m) ?></li>
-            <?php endforeach; ?>
-          </ul>
-        </div>
+        <div class="alert error"><ul><?php foreach ($flash['messages'] as $m): ?><li><?= htmlspecialchars($m) ?></li><?php endforeach; ?></ul></div>
       <?php else: ?>
-        <div class="alert success">
-          <?php foreach ($flash['messages'] as $m): ?>
-            <div><?= htmlspecialchars($m) ?></div>
-          <?php endforeach; ?>
-        </div>
+        <div class="alert success"><?php foreach ($flash['messages'] as $m): ?><div><?= htmlspecialchars($m) ?></div><?php endforeach; ?></div>
       <?php endif; ?>
     <?php endif; ?>
 
     <div class="form-card">
-      <form method="post" action="index.php?action=estudiantes_store" enctype="multipart/form-data">
+      <form method="post" action="index.php?action=docentes_store">
         <div class="form-grid">
           <div class="full">
             <label for="nombre">Nombre completo*</label>
@@ -52,25 +43,17 @@
             <input type="text" id="direccion" name="direccion" value="<?= htmlspecialchars($flash['old']['direccion'] ?? '') ?>">
           </div>
           <div>
-            <label for="NIE">NIE*</label>
-            <input type="text" id="NIE" name="NIE" required value="<?= htmlspecialchars($flash['old']['NIE'] ?? '') ?>">
-          </div>
-          <div>
-            <label for="estado">Estado</label>
-            <select id="estado" name="estado">
-              <?php $est = $flash['old']['estado'] ?? 'activo'; ?>
-              <option value="activo"   <?= $est==='activo'?'selected':''; ?>>Activo</option>
-              <option value="inactivo" <?= $est==='inactivo'?'selected':''; ?>>Inactivo</option>
+            <label for="activo">Activo</label>
+            <select id="activo" name="activo">
+              <?php $act = $flash['old']['activo'] ?? '1'; ?>
+              <option value="1" <?= $act==='1'?'selected':''; ?>>Sí</option>
+              <option value="0" <?= $act==='0'?'selected':''; ?>>No</option>
             </select>
-          </div>
-          <div class="full">
-            <label for="foto">Foto (opcional)</label>
-            <input type="file" id="foto" name="foto" accept="image/*">
           </div>
         </div>
         <div class="actions">
           <button class="btn primary" type="submit">Guardar</button>
-          <a class="btn secondary" href="index.php?action=dashboard">Volver al dashboard</a>
+          <a class="btn secondary" href="index.php?action=docentes_index">Volver al listado</a>
         </div>
       </form>
     </div>
