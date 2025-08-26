@@ -12,6 +12,8 @@ require_once __DIR__ . '/../controladores/AuthController.php';
 require_once __DIR__ . '/../controladores/DashboardController.php';
 require_once __DIR__ . '/../controladores/EstudiantesController.php';
 require_once __DIR__ . '/../controladores/DocentesController.php';
+require_once __DIR__ . '/../controladores/GruposController.php';
+
 
 
 // Si ya tienes controladores reales para estos módulos, descomenta:
@@ -126,13 +128,6 @@ case 'docentes_destroy':
     }
     break;
 
-
-    // --- Grupos (placeholder) ---
-    case 'grupos_index':
-        require_admin();
-        require __DIR__ . '/../views/Grupos/index.php';
-        break;
-
     // --- Usuarios (placeholder) ---
     case 'usuarios_index':
         require_admin();
@@ -159,4 +154,39 @@ case 'docentes_destroy':
             (new AuthController())->showLogin();
         }
         break;
+
+
+        // --- Grupos ---
+case 'grupos_index':
+    (new GruposController())->index();
+    break;
+
+case 'grupos_create':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new GruposController())->store();
+    } else {
+        (new GruposController())->create();
+    }
+    break;
+
+case 'grupos_edit':
+    (new GruposController())->edit();
+    break;
+
+case 'grupos_update':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new GruposController())->update();
+    } else {
+        header('Location: index.php?action=grupos_index');
+    }
+    break;
+
+case 'grupos_destroy':
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        (new GruposController())->destroy();
+    } else {
+        header('Location: index.php?action=grupos_index');
+    }
+    break;
+
 }

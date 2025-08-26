@@ -63,13 +63,13 @@
                 <a class="btn small" href="index.php?action=estudiantes_edit&id=<?= (int)$r['id'] ?>">Editar</a>
               </td>
               <td>
-                <form method="post"
-                      action="index.php?action=estudiantes_destroy"
-                      onsubmit="return confirm('¿Seguro que deseas eliminar/desactivar a este estudiante?');"
-                      style="display:inline;">
-                  <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-                  <button class="btn danger small" type="submit">Eliminar</button>
-                </form>
+              <form method="post"
+                    action="index.php?action=estudiantes_destroy"
+                    onsubmit="return confirm('Esta acción eliminará PERMANENTEMENTE al estudiante y sus registros relacionados. ¿Continuar?');"
+                    style="display:inline;">
+                 <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+                 <button class="btn danger small" type="submit">Eliminar</button>
+              </form>
               </td>
             </tr>
           <?php endforeach; ?>

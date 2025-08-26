@@ -1,0 +1,225 @@
+/* ============ TARJETAS GENERALES ============ */
+.card {
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+}
+.card-body {
+  padding: 16px;
+}
+@media (min-width: 768px) {
+  .card-body { padding: 24px; }
+}
+
+/* ============ FORMULARIO NUEVO/EDITAR GRUPO ============ */
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 16px 24px;
+}
+@media (min-width: 768px) {
+  .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 28px;
+  }
+}
+.span-2 { grid-column: 1 / -1; }
+
+.form-field label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 6px;
+  color: #32324d;
+}
+.form-field input,
+.form-field select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d9dbe9;
+  border-radius: 10px;
+  font-size: 15px;
+  line-height: 1.3;
+  background: #fff;
+  outline: none;
+}
+.form-field input:focus,
+.form-field select:focus {
+  border-color: #6c63ff;
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+}
+
+/* Acciones de formulario */
+.form-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-start;
+  padding-top: 12px;
+}
+.btn.primary {
+  background: #4c45ff;
+  color: #fff;
+  border: 0;
+  border-radius: 12px;
+  padding: 10px 20px;
+  cursor: pointer;
+}
+.btn.ghost {
+  border: 1px solid #c8c9d3;
+  color: #3a3b45;
+  background: #fff;
+  border-radius: 12px;
+  padding: 10px 20px;
+  text-decoration: none;
+}
+
+/* ============ LISTA / INDEX DE GRUPOS ============ */
+.card-list { margin-top: 8px; }
+
+.toolbar {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.toolbar .left,
+.toolbar .right { display: flex; align-items: center; gap: 10px; }
+
+.search {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.search-input {
+  width: min(58vw, 420px);
+  padding: 10px 12px;
+  border: 1px solid #d9dbe9;
+  border-radius: 10px;
+  font-size: 14px;
+}
+.search-input:focus {
+  border-color: #6c63ff;
+  box-shadow: 0 0 0 3px rgba(108,99,255,0.15);
+  outline: none;
+}
+
+/* Tabla */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 12px;
+  border: 1px solid #ececf1;
+}
+.table {
+  width: 100%;
+  border-collapse: separate; /* necesario para bordes por celda */
+  border-spacing: 0;
+}
+.table thead th {
+  text-align: left;
+  font-weight: 700;
+  font-size: 14px;
+  color: #2d2d44;
+  background: #fafafa;
+  border-bottom: 1px solid #ececf1;
+  padding: 12px 14px;
+
+  /* === NUEVO: separadores verticales en encabezado === */
+  border-right: 1px solid #eaeaea;
+}
+.table thead th:last-child {
+  /* === NUEVO: sin separador al final === */
+  border-right: none;
+}
+.table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid #f1f1f5;
+  vertical-align: middle;
+  font-size: 14px;
+  color: #2f2f3a;
+
+  /* === NUEVO: separadores verticales en celdas === */
+  border-right: 1px solid #eaeaea;
+}
+.table tbody td:last-child {
+  /* === NUEVO: sin separador al final === */
+  border-right: none;
+}
+.table tbody tr:hover td {
+  background: #fbfbff;
+}
+
+/* Estado vacío */
+.table .empty {
+  text-align: center;
+  color: #6b6b7a;
+  padding: 28px 12px;
+}
+
+/* Badge año */
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 700;
+  border-radius: 999px;
+  background: #eef0ff;
+  color: #3e46ff;
+}
+
+/* Acciones */
+.actions {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 8px;
+}
+.actions .btn {
+  font-size: 13px;
+  line-height: 1;
+  border-radius: 10px;
+  padding: 8px 10px;
+}
+.btn.link {
+  background: transparent;
+  color: #6a4cff;
+  border: 0;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.btn.danger {
+  background: #ff4d4d;
+  color: #fff;
+  border: 0;
+  cursor: pointer;
+}
+.actions form { display: inline; }
+
+/* Paginación */
+.pagination {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 14px;
+}
+.page-link {
+  color: #6a4cff;
+  text-decoration: none;
+  font-weight: 600;
+}
+.page-link:hover { text-decoration: underline; }
+.page-info {
+  color: #55586c;
+  font-size: 14px;
+}
+
+/* utilidades */
+.mt-16 { margin-top: 16px; }
+.link { color: #6a4cff; text-decoration: underline; }
+
+/* Alertas por si no están en dashboard.css */
+.alert { margin-bottom: 12px; padding: 10px 12px; border-radius: 10px; }
+.alert.success { background: #e9fbee; color: #146c2e; }
+.alert.error   { background: #ffe8e8; color: #8a1f1f; }
+.alert.warning { background: #fff6df; color: #7a5a00; }
