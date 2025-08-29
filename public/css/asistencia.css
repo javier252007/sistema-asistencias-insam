@@ -1,0 +1,74 @@
+/* public/css/asistencia.css */
+body {
+  font-family: system-ui, Arial, sans-serif;
+  margin: 20px;
+}
+.box {
+  max-width: 720px;
+  margin: 0 auto;
+}
+.card {
+  border: 1px solid #ddd;
+  border-radius: 10px;
+  padding: 16px;
+  margin-top: 12px;
+}
+.list {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  margin-top: 6px;
+  max-height: 220px;
+  overflow: auto;
+}
+.item {
+  padding: 10px 12px;
+  border-bottom: 1px solid #eee;
+  cursor: pointer;
+}
+.item:last-child {
+  border-bottom: none;
+}
+.item:hover {
+  background: #f6f6f6;
+}
+.muted {
+  color: #666;
+  font-size: 0.95rem;
+}
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 0;
+  cursor: pointer;
+}
+.btn-primary {
+  background: #0d6efd;
+  color: #fff;
+}
+.btn-primary:disabled {
+  opacity: .5;
+  cursor: not-allowed;
+}
+.input {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 1rem;
+}
+.flash {
+  background: #e7f7e8;
+  color: #0a6c1f;
+  padding: 10px 12px;
+  border-radius: 8px;
+  margin-top: 10px;
+}
+.flash.error {
+  background: #fde2e1;
+  color: #8a1f17;
+}
+.btn-group {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}

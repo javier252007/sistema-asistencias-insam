@@ -15,6 +15,15 @@
       <?php
         // Cada clave es la "action" que esperará el router (public/index.php)
         $all = [
+          // NUEVO: Asistencia (kiosco por NIE)
+          'asistencia_registro' => [
+            'title' => 'Asistencia',
+            'desc'  => 'Marcar entrada por NIE',
+            'icon'  => '🕒',
+            // Muestra a admin y, si quieres, a otros roles también:
+            'enabled_roles' => ['admin','docente','orientador','directora','estudiante']
+          ],
+
           'estudiantes_index' => [
             'title' => 'Estudiantes',
             'desc'  => 'Registrar y gestionar estudiantes',
