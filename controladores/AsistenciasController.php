@@ -65,8 +65,23 @@ class AsistenciasController {
       if (($est['estado'] ?? 'activo') !== 'activo') { $_SESSION['flash_msg']='El estudiante no está activo.'; header('Location: index.php?action=asistencia_registro'); exit; }
 
       $asis = new AsistenciaInstitucional($this->pdo);
-      if ($asis->existeEntradaHoy($id)) { $_SESSION['flash_msg']='Ya registraste tu entrada hoy.'; header('Location: index.php?action=asistencia_registro'); exit; }
 
+      // ✅ Validaciones del día
+      $hayEntrada = $asis->existeEntradaHoy($id);
+      $haySalida  = $asis->existeSalidaHoy($id);
+
+      if ($hayEntrada) {
+        $_SESSION['flash_msg'] = 'Ya registraste tu entrada hoy.';
+        header('Location: index.php?action=asistencia_registro'); exit;
+      }
+
+      // 🔴 Si ya hay SALIDA hoy, no permitir marcar entrada
+      if ($haySalida) {
+        $_SESSION['flash_msg'] = 'Ya registraste tu salida hoy; no puedes marcar entrada.';
+        header('Location: index.php?action=asistencia_registro'); exit;
+      }
+
+      // Guardar entrada
       $asis->marcarEntrada($id);
       $_SESSION['flash_msg'] = 'Entrada registrada correctamente. ¡Bienvenido! 👋';
       header('Location: index.php?action=asistencia_registro'); exit;
@@ -78,7 +93,6 @@ class AsistenciasController {
     }
   }
 
-  /* ------------ NUEVO: SALIDA ------------ */
   public function marcarSalida(): void {
     if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: index.php?action=asistencia_registro'); exit; }
     if (!$this->pdo) { $_SESSION['flash_msg']='No hay conexión a base de datos.'; header('Location: index.php?action=asistencia_registro'); exit; }
@@ -93,7 +107,7 @@ class AsistenciasController {
 
       $asis = new AsistenciaInstitucional($this->pdo);
 
-      // 🔴 Validar que exista ENTRADA hoy antes de permitir SALIDA
+      // 🔴 Debe existir ENTRADA hoy para poder salir
       $hayEntrada = $this->pdo->prepare("
         SELECT 1
         FROM asistencias_institucionales
@@ -114,7 +128,7 @@ class AsistenciasController {
         header('Location: index.php?action=asistencia_registro'); exit;
       }
 
-      // ✅ Guardar salida
+      // Guardar salida
       $asis->marcarSalida($id);
       $_SESSION['flash_msg'] = 'Salida registrada. ¡Hasta luego! 👋';
       header('Location: index.php?action=asistencia_registro'); exit;

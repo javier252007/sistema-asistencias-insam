@@ -16,6 +16,10 @@ require_once __DIR__ . '/../controladores/GruposController.php';
 require_once __DIR__ . '/../controladores/UsuariosController.php';
 require_once __DIR__ . '/../controladores/AsistenciasController.php';
 
+/* NUEVO: controladores reales para Clases y Reportes */
+require_once __DIR__ . '/../controladores/ClasesController.php';
+require_once __DIR__ . '/../controladores/ReportesController.php';
+
 $action = $_GET['action'] ?? 'login';
 
 /** Helpers de seguridad **/
@@ -186,7 +190,7 @@ switch ($action) {
     case 'asistencia_registro':
         try { (new AsistenciasController())->registro(); }
         catch (Throwable $e) {
-            header('Content-Type: text/plain; charset=utf-8');
+            header('ContenSt-Type: text/plain; charset=utf-8');
             echo "⚠️ Error en asistencia_registro:\n\n{$e->getMessage()}\n\n{$e->getFile()}:{$e->getLine()}";
         }
         break;
@@ -209,7 +213,6 @@ switch ($action) {
         } else { header('Location: index.php?action=asistencia_registro'); }
         break;
 
-    /* ----------- NUEVO: MARCAR SALIDA ----------- */
     case 'marcar_salida':
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             try { (new AsistenciasController())->marcarSalida(); }
@@ -220,15 +223,58 @@ switch ($action) {
         } else { header('Location: index.php?action=asistencia_registro'); }
         break;
 
-    /** -------------------- CLASES / REPORTES (placeholders) -------------------- **/
+    /** -------------------- CLASES (admin) -------------------- **/
     case 'clases_index':
         require_login(); require_admin();
-        require __DIR__ . '/../views/Clases/index.php';
+        (new ClasesController())->index();
         break;
 
-    case 'reportes':
+    case 'clases_create':
         require_login(); require_admin();
-        require __DIR__ . '/../views/Reportes/index.php';
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            (new ClasesController())->store();
+        } else {
+            (new ClasesController())->create();
+        }
+        break;
+
+    case 'clases_edit':
+        require_login(); require_admin();
+        (new ClasesController())->edit();
+        break;
+
+    case 'clases_update':
+        require_login(); require_admin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            (new ClasesController())->update();
+        } else {
+            header('Location: index.php?action=clases_index');
+        }
+        break;
+
+    case 'clases_destroy':
+        require_login(); require_admin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            (new ClasesController())->destroy();
+        } else {
+            header('Location: index.php?action=clases_index');
+        }
+        break;
+
+    /** -------------------- REPORTES (requiere login; puedes permitir varios roles) -------------------- **/
+    case 'reportes':
+        require_login(); // no solo admin; tu dashboard ya permite a varios roles
+        (new ReportesController())->index();
+        break;
+
+    case 'reporte_institucional':
+        require_login();
+        (new ReportesController())->generarInstitucional();
+        break;
+
+    case 'reporte_clase':
+        require_login();
+        (new ReportesController())->generarPorClase();
         break;
 
     /** -------------------- DEFAULT -------------------- **/
