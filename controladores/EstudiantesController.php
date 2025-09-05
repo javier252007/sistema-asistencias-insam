@@ -3,13 +3,17 @@
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../modelos/database.php';
 require_once __DIR__ . '/../modelos/Estudiante.php';
+require_once __DIR__ . '/../modelos/Grupo.php';
 
 class EstudiantesController {
     private $model;
+    private $grupoModel;
 
     public function __construct() {
         $pdo = Database::getInstance();
         $this->model = new Estudiante($pdo);
+        $this->grupoModel = new Grupo($pdo);
+        if (session_status() === PHP_SESSION_NONE) session_start();
     }
 
     private function requireAdmin(): void {
@@ -34,6 +38,7 @@ class EstudiantesController {
 
     public function create(): void {
         $this->requireAdmin();
+        $grupos = $this->grupoModel->all();
         require __DIR__ . '/../views/Estudiantes/create.php';
     }
 
@@ -50,13 +55,17 @@ class EstudiantesController {
             'direccion'        => trim($_POST['direccion'] ?? ''),
             'NIE'              => trim($_POST['NIE'] ?? ''),
             'estado'           => $_POST['estado'] ?? 'activo',
+            'grupo_id'         => (int)($_POST['grupo_id'] ?? 0),
         ];
 
         $errores = [];
         if ($data['nombre'] === '') $errores[] = 'El nombre es obligatorio.';
-        if ($data['NIE'] === '')    $errores[] = 'El NIE es obligatorio.';
         if ($data['NIE'] !== '' && $this->model->existeNIE($data['NIE'])) {
             $errores[] = 'El NIE ya existe.';
+        }
+        if ($data['grupo_id'] <= 0) $errores[] = 'Debe seleccionar un grupo.';
+        if ($data['correo'] !== '' && !filter_var($data['correo'], FILTER_VALIDATE_EMAIL)) {
+            $errores[] = 'Correo inválido.';
         }
 
         if ($errores) {
@@ -76,6 +85,8 @@ class EstudiantesController {
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) { header('Location: index.php?action=estudiantes_index'); exit; }
         $est = $this->model->obtenerPorId($id);
+        if (!$est) { header('Location: index.php?action=estudiantes_index'); exit; }
+        $grupos = $this->grupoModel->all();
         require __DIR__ . '/../views/Estudiantes/edit.php';
     }
 
@@ -94,14 +105,18 @@ class EstudiantesController {
             'direccion'        => trim($_POST['direccion'] ?? ''),
             'NIE'              => trim($_POST['NIE'] ?? ''),
             'estado'           => $_POST['estado'] ?? 'activo',
+            'grupo_id'         => (int)($_POST['grupo_id'] ?? 0),
         ];
 
         $errores = [];
         if ($data['id'] <= 0 || $data['persona_id'] <= 0) $errores[] = 'ID inválido.';
         if ($data['nombre'] === '') $errores[] = 'El nombre es obligatorio.';
-        if ($data['NIE'] === '') $errores[] = 'El NIE es obligatorio.';
         if ($data['NIE'] !== '' && $this->model->nieUsadoPorOtro($data['NIE'], $data['id'])) {
             $errores[] = 'El NIE ya está registrado para otro estudiante.';
+        }
+        if ($data['grupo_id'] <= 0) $errores[] = 'Debe seleccionar un grupo.';
+        if ($data['correo'] !== '' && !filter_var($data['correo'], FILTER_VALIDATE_EMAIL)) {
+            $errores[] = 'Correo inválido.';
         }
 
         if ($errores) {
@@ -125,9 +140,7 @@ class EstudiantesController {
         $id = (int)($_POST['id'] ?? 0);
         if ($id <= 0) { header('Location: index.php?action=estudiantes_index'); exit; }
 
-        // Borrado físico definitivo
         $ok = $this->model->eliminar($id);
-
         $_SESSION['flash'] = $ok
             ? ['type'=>'success','messages'=>['Estudiante eliminado permanentemente.']]
             : ['type'=>'error','messages'=>['No se pudo eliminar. Revisa dependencias o FKs.']];

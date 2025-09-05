@@ -28,28 +28,39 @@
           <div class="form-grid">
             <div>
               <label for="nombre">Nombre</label>
-              <input type="text" id="nombre" name="nombre" required value="<?= htmlspecialchars($est['nombre']) ?>">
+              <input type="text" id="nombre" name="nombre" required
+                     value="<?= htmlspecialchars($est['nombre']) ?>">
             </div>
+
             <div>
               <label for="fecha_nacimiento">Fecha nac.</label>
-              <input type="date" id="fecha_nacimiento" name="fecha_nacimiento" value="<?= htmlspecialchars($est['fecha_nacimiento'] ?? '') ?>">
+              <input type="date" id="fecha_nacimiento" name="fecha_nacimiento"
+                     value="<?= htmlspecialchars($est['fecha_nacimiento'] ?? '') ?>">
             </div>
+
             <div>
               <label for="telefono">Teléfono</label>
-              <input type="text" id="telefono" name="telefono" value="<?= htmlspecialchars($est['telefono'] ?? '') ?>">
+              <input type="text" id="telefono" name="telefono"
+                     value="<?= htmlspecialchars($est['telefono'] ?? '') ?>">
             </div>
+
             <div>
               <label for="correo">Correo</label>
-              <input type="email" id="correo" name="correo" value="<?= htmlspecialchars($est['correo'] ?? '') ?>">
+              <input type="email" id="correo" name="correo"
+                     value="<?= htmlspecialchars($est['correo'] ?? '') ?>">
             </div>
+
             <div class="full">
               <label for="direccion">Dirección</label>
               <textarea id="direccion" name="direccion" rows="2"><?= htmlspecialchars($est['direccion'] ?? '') ?></textarea>
             </div>
+
             <div>
               <label for="NIE">NIE</label>
-              <input type="text" id="NIE" name="NIE" required value="<?= htmlspecialchars($est['NIE']) ?>">
+              <input type="text" id="NIE" name="NIE" required
+                     value="<?= htmlspecialchars($est['NIE']) ?>">
             </div>
+
             <div>
               <label for="estado">Estado</label>
               <select id="estado" name="estado">
@@ -57,6 +68,25 @@
                 <option value="inactivo" <?= ($est['estado'] === 'inactivo') ? 'selected' : '' ?>>Inactivo</option>
               </select>
             </div>
+
+            <!-- NUEVO: selector de Grupo -->
+            <div>
+              <label for="grupo_id">Grupo*</label>
+              <select id="grupo_id" name="grupo_id" required>
+                <option value="">— Seleccione —</option>
+                <?php
+                  $sel = (int)($est['grupo_id'] ?? 0);
+                  foreach ($grupos as $g):
+                    $gid = (int)$g['id'];
+                    $txt = trim(($g['grado'] ?? '').' - '.($g['seccion'] ?? ''));
+                ?>
+                  <option value="<?= $gid ?>" <?= $gid === $sel ? 'selected' : '' ?>>
+                    <?= htmlspecialchars($txt, ENT_QUOTES, 'UTF-8') ?>
+                  </option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <!-- /NUEVO -->
           </div>
 
           <div class="actions">

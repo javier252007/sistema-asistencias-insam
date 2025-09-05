@@ -9,6 +9,9 @@ class GruposController {
     public function __construct() {
         $pdo = Database::getInstance();
         $this->model = new Grupo($pdo);
+        if (session_status() === PHP_SESSION_NONE) {
+            session_start();
+        }
     }
 
     private function requireAdmin(): void {
@@ -29,7 +32,6 @@ class GruposController {
         $pages   = max(1, (int)ceil($total / $per_page));
 
         require __DIR__ . '/../views/Grupos/index.php';
-
     }
 
     public function create(): void {
@@ -74,8 +76,10 @@ class GruposController {
         $this->requireAdmin();
         $id = (int)($_GET['id'] ?? 0);
         if ($id <= 0) { header('Location: index.php?action=grupos_index'); exit; }
+
         $g = $this->model->obtenerPorId($id);
         if (!$g) { header('Location: index.php?action=grupos_index'); exit; }
+
         $modalidades = $this->model->listarModalidades();
         $docentes    = $this->model->listarDocentesActivos();
         require __DIR__ . '/../views/Grupos/edit.php';
@@ -86,6 +90,7 @@ class GruposController {
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: index.php?action=grupos_index'); exit;
         }
+
         $data = [
             'id'              => (int)($_POST['id'] ?? 0),
             'docente_guia_id' => (int)($_POST['docente_guia_id'] ?? 0),
@@ -113,23 +118,71 @@ class GruposController {
         header('Location: index.php?action=grupos_index'); exit;
     }
 
+    /**
+     * Elimina un grupo:
+     * - BD debe tener:
+     *   clases(grupo_id)                  ON DELETE CASCADE
+     *   asistencias_clase(clase_id)       ON DELETE CASCADE
+     *   incidentes_estudiantes(clase_id)  ON DELETE CASCADE
+     *   estudiantes(grupo_id)             ON DELETE SET NULL  (y permitir NULL)
+     * - No se hace pre-chequeo de "tiene clases".
+     * - Se confía en las FKs para limpiar en cascada o dejar estudiantes sin grupo.
+     */
     public function destroy(): void {
         $this->requireAdmin();
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: index.php?action=grupos_index'); exit;
         }
-        $id = (int)($_POST['id'] ?? 0);
-        if ($id <= 0) { header('Location: index.php?action=grupos_index'); exit; }
 
-        if ($this->model->estaEnUso($id)) {
-            $_SESSION['flash'] = ['type'=>'error','messages'=>['No se puede eliminar: el grupo tiene clases asociadas.']];
+        $id = (int)($_POST['id'] ?? 0);
+        if ($id <= 0) {
+            $_SESSION['flash'] = ['type'=>'error','messages'=>['ID de grupo inválido.']];
             header('Location: index.php?action=grupos_index'); exit;
         }
 
-        $ok = $this->model->eliminar($id);
-        $_SESSION['flash'] = $ok
-            ? ['type'=>'success','messages'=>['Grupo eliminado.']]
-            : ['type'=>'error','messages'=>['No se pudo eliminar el grupo.']];
+        $pdo = Database::getInstance();
+        try {
+            $pdo->beginTransaction();
+
+            // Deja que la BD haga el trabajo. Tu modelo debe ejecutar:
+            // DELETE FROM grupos WHERE id = ?
+            $ok = $this->model->eliminar($id);
+
+            if (!$ok) {
+                throw new RuntimeException('No se pudo eliminar el grupo (modelo retornó false).');
+            }
+
+            $pdo->commit();
+
+            $_SESSION['flash'] = [
+                'type' => 'success',
+                'messages' => [
+                    'Grupo eliminado correctamente.',
+                    'Las clases/incidencias del grupo se eliminaron en cascada.',
+                    'Los estudiantes quedaron sin grupo (grupo_id = NULL).'
+                ]
+            ];
+        } catch (PDOException $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+
+            // 23000 = integridad referencial (si pasa, revisa FKs indicadas arriba)
+            if ($e->getCode() === '23000') {
+                $_SESSION['flash'] = ['type'=>'error','messages'=>[
+                    'No se pudo eliminar por referencias activas. Verifica FKs:',
+                    ' - clases(grupo_id) => ON DELETE CASCADE',
+                    ' - asistencias_clase(clase_id) => ON DELETE CASCADE',
+                    ' - incidentes_estudiantes(clase_id) => ON DELETE CASCADE',
+                    ' - estudiantes(grupo_id) => ON DELETE SET NULL (y columna permite NULL)'
+                ]];
+            } else {
+                $_SESSION['flash'] = ['type'=>'error','messages'=>['Error SQL: '.$e->getMessage()]];
+            }
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
+            $_SESSION['flash'] = ['type'=>'error','messages'=>['Error: '.$e->getMessage()]];
+        }
+
         header('Location: index.php?action=grupos_index'); exit;
     }
 }

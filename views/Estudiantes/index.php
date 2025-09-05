@@ -10,14 +10,12 @@
   <div class="container">
 
     <div class="toolbar">
-      <!-- Botón + para registrar -->
       <a class="btn icon" href="index.php?action=estudiantes_create" title="Nuevo estudiante">＋</a>
 
-      <!-- Buscador -->
       <form class="search" method="get" action="index.php">
         <input type="hidden" name="action" value="estudiantes_index">
         <input type="text" name="q" value="<?= htmlspecialchars($q ?? '') ?>"
-               placeholder="Buscar por nombre o NIE">
+               placeholder="Buscar por nombre, NIE o grupo">
         <button class="btn" type="submit">Buscar</button>
       </form>
     </div>
@@ -41,6 +39,7 @@
             <th>Fecha nac.</th>
             <th>Teléfono</th>
             <th>Correo</th>
+            <th>Grupo</th>
             <th>Estado</th>
             <th>Editar</th>
             <th>Eliminar</th>
@@ -49,27 +48,36 @@
         <tbody>
           <?php foreach (($rows ?? []) as $r): ?>
             <tr>
-              <td><?= htmlspecialchars($r['NIE']) ?></td>
-              <td><?= htmlspecialchars($r['nombre']) ?></td>
+              <td><?= htmlspecialchars($r['NIE'] ?? '') ?></td>
+              <td><?= htmlspecialchars($r['nombre'] ?? '') ?></td>
               <td><?= htmlspecialchars($r['fecha_nacimiento'] ?? '') ?></td>
               <td><?= htmlspecialchars($r['telefono'] ?? '') ?></td>
               <td><?= htmlspecialchars($r['correo'] ?? '') ?></td>
+
               <td>
-                <span class="badge <?= ($r['estado']==='activo') ? 'ok' : 'off' ?>">
-                  <?= htmlspecialchars($r['estado']) ?>
+                <?php
+                  $grupoTxt = trim((string)($r['grado'] ?? '') . ' ' . (string)($r['seccion'] ?? ''));
+                  echo $grupoTxt !== '' ? htmlspecialchars($grupoTxt) : '<span class="badge badge-warning">Sin grupo</span>';
+                ?>
+              </td>
+
+              <td>
+                <span class="badge <?= ($r['estado'] ?? 'activo') === 'activo' ? 'ok' : 'off' ?>">
+                  <?= htmlspecialchars($r['estado'] ?? 'activo') ?>
                 </span>
               </td>
+
               <td>
                 <a class="btn small" href="index.php?action=estudiantes_edit&id=<?= (int)$r['id'] ?>">Editar</a>
               </td>
               <td>
-              <form method="post"
-                    action="index.php?action=estudiantes_destroy"
-                    onsubmit="return confirm('Esta acción eliminará PERMANENTEMENTE al estudiante y sus registros relacionados. ¿Continuar?');"
-                    style="display:inline;">
-                 <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
-                 <button class="btn danger small" type="submit">Eliminar</button>
-              </form>
+                <form method="post"
+                      action="index.php?action=estudiantes_destroy"
+                      onsubmit="return confirm('Esta acción eliminará PERMANENTEMENTE al estudiante y sus registros relacionados. ¿Continuar?');"
+                      style="display:inline;">
+                  <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
+                  <button class="btn danger small" type="submit">Eliminar</button>
+                </form>
               </td>
             </tr>
           <?php endforeach; ?>

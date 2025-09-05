@@ -27,6 +27,14 @@ class Grupo {
         return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    /** Catálogo simple de grupos para selects */
+    public function all(): array {
+        $sql = "SELECT id, grado, seccion
+                  FROM grupos
+              ORDER BY grado ASC, seccion ASC";
+        return $this->pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     /* ==========================
        Listado / Búsqueda / Paginación
        ========================== */
@@ -115,8 +123,8 @@ class Grupo {
                 VALUES (:docente, :modalidad, :seccion, :grado, :anio)";
         $st = $this->pdo->prepare($sql);
         $ok = $st->execute([
-            'docente'   => $d['docente_guia_id'] ?: null,
-            'modalidad' => $d['modalidad_id']    ?: null,
+            'docente'   => $d['docente_guia_id'] ?? null,
+            'modalidad' => $d['modalidad_id']    ?? null,
             'seccion'   => $d['seccion'],
             'grado'     => $d['grado'],
             'anio'      => $d['anio_lectivo'],
@@ -134,8 +142,8 @@ class Grupo {
                  WHERE id = :id";
         $st = $this->pdo->prepare($sql);
         return $st->execute([
-            'docente'   => $d['docente_guia_id'] ?: null,
-            'modalidad' => $d['modalidad_id']    ?: null,
+            'docente'   => $d['docente_guia_id'] ?? null,
+            'modalidad' => $d['modalidad_id']    ?? null,
             'seccion'   => $d['seccion'],
             'grado'     => $d['grado'],
             'anio'      => $d['anio_lectivo'],
@@ -143,18 +151,26 @@ class Grupo {
         ]);
     }
 
+    /**
+     * Útil para mostrar advertencias en la UI,
+     * NO usar para bloquear el DELETE (la BD maneja CASCADE/SET NULL).
+     */
     public function estaEnUso(int $id): bool {
-        // Un grupo está en uso si existe al menos una clase vinculada
         $st = $this->pdo->prepare("SELECT 1 FROM clases WHERE grupo_id = :id LIMIT 1");
         $st->execute(['id' => $id]);
-        return (bool)$st->fetchColumn();
+        if ($st->fetchColumn()) return true;
+
+        $st = $this->pdo->prepare("SELECT 1 FROM estudiantes WHERE grupo_id = :id LIMIT 1");
+        $st->execute(['id' => $id]);
+        if ($st->fetchColumn()) return true;
+
+        return false;
     }
 
+    /** Eliminar confiando en FKs: CASCADE y SET NULL */
     public function eliminar(int $id): bool {
-        if ($this->estaEnUso($id)) {
-            return false; // proteger integridad si hay clases asociadas
-        }
         $st = $this->pdo->prepare("DELETE FROM grupos WHERE id = :id");
-        return $st->execute(['id' => $id]);
+        $st->execute(['id' => $id]);
+        return $st->rowCount() > 0; // true si realmente se eliminó una fila
     }
 }

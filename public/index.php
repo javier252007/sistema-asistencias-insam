@@ -7,6 +7,9 @@ error_reporting(E_ALL);
 
 session_start();
 
+/* =========================
+ * REQUIRES
+ * ========================= */
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../controladores/AuthController.php';
 require_once __DIR__ . '/../controladores/DashboardController.php';
@@ -15,14 +18,12 @@ require_once __DIR__ . '/../controladores/DocentesController.php';
 require_once __DIR__ . '/../controladores/GruposController.php';
 require_once __DIR__ . '/../controladores/UsuariosController.php';
 require_once __DIR__ . '/../controladores/AsistenciasController.php';
-
-/* NUEVO: controladores reales para Clases y Reportes */
 require_once __DIR__ . '/../controladores/ClasesController.php';
 require_once __DIR__ . '/../controladores/ReportesController.php';
 
-$action = $_GET['action'] ?? 'login';
-
-/** Helpers de seguridad **/
+/* =========================
+ * HELPERS DE SEGURIDAD
+ * ========================= */
 function require_login(): void {
     if (empty($_SESSION['user_id'])) {
         $_SESSION['error'] = 'Inicia sesión para continuar.';
@@ -31,31 +32,55 @@ function require_login(): void {
     }
 }
 function require_admin(): void {
-    if (empty($_SESSION['user_id']) || ($_SESSION['rol'] ?? '') !== 'admin') {
+    if (empty($_SESSION['user_id'])) {
+        $_SESSION['error'] = 'Inicia sesión para continuar.';
+        header('Location: index.php?action=login'); // <- si no hay sesión, a login
+        exit;
+    }
+    if (($_SESSION['rol'] ?? '') !== 'admin') {
         $_SESSION['error'] = 'Acceso restringido a administradores.';
-        header('Location: index.php?action=dashboard');
+        header('Location: index.php?action=dashboard'); // <- logueado pero sin rol admin
         exit;
     }
 }
 
+/* =========================
+ * DEBUG DEV (opcional)
+ * ========================= */
+// DESCOMENTA SOLO EN DESARROLLO PARA PROBAR RÁPIDO RUTAS PROTEGIDAS
+// if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
+// if (!isset($_SESSION['rol']))     $_SESSION['rol']     = 'admin';
+
+/* =========================
+ * ROUTER
+ * ========================= */
+$action = $_GET['action'] ?? 'login';
+
+/* Instancias reusables */
+$controllerClases   = new ClasesController();
+$controllerReportes = new ReportesController();
+
 switch ($action) {
-    /** -------------------- AUTENTICACIÓN -------------------- **/
+    /* ---------- AUTENTICACIÓN ---------- */
     case 'login':
-        if ($_SERVER['REQUEST_METHOD'] === 'POST') (new AuthController())->login();
-        else (new AuthController())->showLogin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            (new AuthController())->login();
+        } else {
+            (new AuthController())->showLogin();
+        }
         break;
 
     case 'logout':
         (new AuthController())->logout();
         break;
 
-    /** -------------------- DASHBOARD -------------------- **/
+    /* ---------- DASHBOARD ---------- */
     case 'dashboard':
         require_login();
         (new DashboardController())->index();
         break;
 
-    /** -------------------- ESTUDIANTES (admin) -------------------- **/
+    /* ---------- ESTUDIANTES (admin) ---------- */
     case 'estudiantes_index':
         require_login(); require_admin();
         (new EstudiantesController())->index();
@@ -89,7 +114,7 @@ switch ($action) {
         else header('Location: index.php?action=estudiantes_index');
         break;
 
-    /** -------------------- DOCENTES (admin) -------------------- **/
+    /* ---------- DOCENTES (admin) ---------- */
     case 'docentes_index':
         require_login(); require_admin();
         (new DocentesController())->index();
@@ -123,7 +148,7 @@ switch ($action) {
         else header('Location: index.php?action=docentes_index');
         break;
 
-    /** -------------------- USUARIOS (admin) -------------------- **/
+    /* ---------- USUARIOS (admin) ---------- */
     case 'usuarios_index':
         require_login(); require_admin();
         (new UsuariosController())->index();
@@ -157,7 +182,7 @@ switch ($action) {
         else header('Location: index.php?action=usuarios_index');
         break;
 
-    /** -------------------- GRUPOS (admin) -------------------- **/
+    /* ---------- GRUPOS (admin) ---------- */
     case 'grupos_index':
         require_login(); require_admin();
         (new GruposController())->index();
@@ -186,11 +211,11 @@ switch ($action) {
         else header('Location: index.php?action=grupos_index');
         break;
 
-    /** -------------------- ASISTENCIAS (kiosco público, sin login) -------------------- **/
+    /* ---------- ASISTENCIAS (kiosco público) ---------- */
     case 'asistencia_registro':
         try { (new AsistenciasController())->registro(); }
         catch (Throwable $e) {
-            header('ContenSt-Type: text/plain; charset=utf-8');
+            header('Content-Type: text/plain; charset=utf-8');
             echo "⚠️ Error en asistencia_registro:\n\n{$e->getMessage()}\n\n{$e->getFile()}:{$e->getLine()}";
         }
         break;
@@ -223,30 +248,42 @@ switch ($action) {
         } else { header('Location: index.php?action=asistencia_registro'); }
         break;
 
-    /** -------------------- CLASES (admin) -------------------- **/
+    /* ---------- CLASES (admin) ---------- */
     case 'clases_index':
         require_login(); require_admin();
-        (new ClasesController())->index();
+        $controllerClases->index();
         break;
 
-    case 'clases_create':
+    case 'clases_new':          // ← Botón “Nueva clase” viene aquí
+        require_login(); require_admin();
+        if (method_exists($controllerClases, 'new')) $controllerClases->new();
+        else $controllerClases->create(); // por compatibilidad
+        break;
+
+    case 'clases_create':       // POST de creación
         require_login(); require_admin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            (new ClasesController())->store();
+            if (method_exists($controllerClases, 'store')) $controllerClases->store();
+            else $controllerClases->create();
         } else {
-            (new ClasesController())->create();
+            header('Location: index.php?action=clases_new');
         }
+        break;
+
+    case 'clases_show':         // Detalle (lista estudiantes del grupo)
+        require_login(); require_admin();
+        $controllerClases->show();
         break;
 
     case 'clases_edit':
         require_login(); require_admin();
-        (new ClasesController())->edit();
+        $controllerClases->edit();
         break;
 
     case 'clases_update':
         require_login(); require_admin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            (new ClasesController())->update();
+            $controllerClases->update();
         } else {
             header('Location: index.php?action=clases_index');
         }
@@ -255,31 +292,44 @@ switch ($action) {
     case 'clases_destroy':
         require_login(); require_admin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            (new ClasesController())->destroy();
+            $controllerClases->destroy();
         } else {
             header('Location: index.php?action=clases_index');
         }
         break;
 
-    /** -------------------- REPORTES (requiere login; puedes permitir varios roles) -------------------- **/
+    case 'horarios_disponibles': // AJAX opcional
+        require_login(); require_admin();
+        if (method_exists($controllerClases, 'horariosDisponibles')) {
+            $controllerClases->horariosDisponibles();
+        } else {
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode([]);
+        }
+        break;
+
+    /* ---------- REPORTES ---------- */
     case 'reportes':
-        require_login(); // no solo admin; tu dashboard ya permite a varios roles
-        (new ReportesController())->index();
+        require_login();
+        $controllerReportes->index();
         break;
 
     case 'reporte_institucional':
         require_login();
-        (new ReportesController())->generarInstitucional();
+        $controllerReportes->generarInstitucional();
         break;
 
     case 'reporte_clase':
         require_login();
-        (new ReportesController())->generarPorClase();
+        $controllerReportes->generarPorClase();
         break;
 
-    /** -------------------- DEFAULT -------------------- **/
+    /* ---------- DEFAULT ---------- */
     default:
-        if (!empty($_SESSION['user_id'])) header('Location: index.php?action=dashboard');
-        else (new AuthController())->showLogin();
+        if (!empty($_SESSION['user_id'])) {
+            header('Location: index.php?action=dashboard');
+        } else {
+            (new AuthController())->showLogin();
+        }
         break;
 }
