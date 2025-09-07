@@ -25,25 +25,32 @@ function labelAsignatura(array $a): string {
   return 'Asignatura #'.(($a['id'] ?? '') ?: '?');
 }
 
-$selectedHorarioId = $clase['horario_id'] ?? null;
+$selectedHorarioId = $clase['horario_id'] ?? null; // usado en edición
+$isEdit = !empty($isEdit);
 ?>
 <!doctype html>
 <html lang="es">
 <head>
 <meta charset="utf-8">
-<title><?= !empty($isEdit) ? 'Editar clase' : 'Nueva clase' ?></title>
+<title><?= $isEdit ? 'Editar clase' : 'Nueva clase' ?></title>
 <link rel="stylesheet" href="css/dashboard.css">
+<style>
+  .grid-periodos{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:10px;margin-top:6px}
+  .chk{display:flex;gap:8px;align-items:center;border:1px solid #ddd;padding:8px;border-radius:8px;background:#fff}
+  .hint{color:#555;font-size:.9rem;margin-top:6px}
+  @media (max-width: 720px){ .grid-periodos{grid-template-columns:repeat(2, minmax(0,1fr));} }
+</style>
 </head>
 <body>
 <div class="container">
-  <h1><?= !empty($isEdit) ? 'Editar clase' : 'Nueva clase' ?></h1>
+  <h1><?= $isEdit ? 'Editar clase' : 'Nueva clase' ?></h1>
 
   <?php if (!empty($_SESSION['flash_msg'])): ?>
     <div class="flash"><?= h($_SESSION['flash_msg']); unset($_SESSION['flash_msg']); ?></div>
   <?php endif; ?>
 
-  <form method="post" action="index.php?action=<?= !empty($isEdit) ? 'clases_update' : 'clases_create' ?>">
-    <?php if (!empty($isEdit)): ?>
+  <form method="post" action="index.php?action=<?= $isEdit ? 'clases_update' : 'clases_create' ?>">
+    <?php if ($isEdit): ?>
       <input type="hidden" name="id" value="<?= (int)($clase['id'] ?? 0) ?>">
     <?php endif; ?>
 
@@ -54,7 +61,7 @@ $selectedHorarioId = $clase['horario_id'] ?? null;
         <option value="">Seleccione...</option>
         <?php foreach (($docentes ?? []) as $d): ?>
           <?php $id=(int)($d['id']??0); $lbl=labelDocente($d);
-          $sel=(!empty($isEdit)&&(int)($clase['docente_id']??0)===$id)?'selected':''; ?>
+          $sel=($isEdit && (int)($clase['docente_id']??0)===$id)?'selected':''; ?>
           <option value="<?= $id ?>" <?= $sel ?>><?= h($lbl) ?></option>
         <?php endforeach; ?>
       </select>
@@ -67,7 +74,7 @@ $selectedHorarioId = $clase['horario_id'] ?? null;
         <option value="">Seleccione...</option>
         <?php foreach (($grupos ?? []) as $g): ?>
           <?php $id=(int)($g['id']??0); $lbl=labelGrupo($g);
-          $sel=(!empty($isEdit)&&(int)($clase['grupo_id']??0)===$id)?'selected':''; ?>
+          $sel=($isEdit && (int)($clase['grupo_id']??0)===$id)?'selected':''; ?>
           <option value="<?= $id ?>" <?= $sel ?>><?= h($lbl) ?></option>
         <?php endforeach; ?>
       </select>
@@ -80,7 +87,7 @@ $selectedHorarioId = $clase['horario_id'] ?? null;
         <option value="">(sin asignatura)</option>
         <?php foreach (($asignaturas ?? []) as $a): ?>
           <?php $id=(int)($a['id']??0); $lbl=labelAsignatura($a);
-          $sel=(!empty($isEdit)&&(int)($clase['asignatura_id']??0)===$id)?'selected':''; ?>
+          $sel=($isEdit && (int)($clase['asignatura_id']??0)===$id)?'selected':''; ?>
           <option value="<?= $id ?>" <?= $sel ?>><?= h($lbl) ?></option>
         <?php endforeach; ?>
       </select>
@@ -92,31 +99,60 @@ $selectedHorarioId = $clase['horario_id'] ?? null;
       <select name="dia" required>
         <option value="">Seleccione...</option>
         <?php foreach ($DIAS as $d): ?>
-          <option value="<?= h($d) ?>" <?= (!empty($isEdit)&&($clase['dia']??'')===$d)?'selected':'' ?>><?= h($d) ?></option>
+          <option value="<?= h($d) ?>" <?= ($isEdit && ($clase['dia']??'')===$d)?'selected':'' ?>><?= h($d) ?></option>
         <?php endforeach; ?>
       </select>
     </div>
 
-    <!-- Período -->
-    <div>
-      <label>Período (número)</label>
-      <select name="horario_id" required>
-        <option value="">Seleccione...</option>
-        <?php foreach ($horarios as $hrow): ?>
-          <?php $hid=(int)($hrow['id']??0);
-          $hi=substr((string)($hrow['hora_inicio']??''),0,5);
-          $hf=substr((string)($hrow['hora_fin']??''),0,5);
-          $num=(int)($hrow['numero_periodo']??0);
-          $sel=($selectedHorarioId!==null&&(int)$selectedHorarioId===$hid)?'selected':''; ?>
-          <option value="<?= $hid ?>" <?= $sel ?>>
-            <?= $num ?> (<?= h($hi) ?>–<?= h($hf) ?>)
-          </option>
-        <?php endforeach; ?>
-      </select>
-      <?php if (empty($horarios)): ?>
-        <div style="color:#b00;margin-top:4px;">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
-      <?php endif; ?>
-    </div>
+    <!-- Período(s) -->
+    <?php if ($isEdit): ?>
+      <!-- En edición: período único (mantiene compatibilidad con update()) -->
+      <div>
+        <label>Período (número)</label>
+        <select name="horario_id" required>
+          <option value="">Seleccione...</option>
+          <?php foreach ($horarios as $hrow): ?>
+            <?php
+              $hid=(int)($hrow['id']??0);
+              $hi=substr((string)($hrow['hora_inicio']??''),0,5);
+              $hf=substr((string)($hrow['hora_fin']??''),0,5);
+              $num=(int)($hrow['numero_periodo']??0);
+              $sel=($selectedHorarioId!==null && (int)$selectedHorarioId===$hid)?'selected':'';
+            ?>
+            <option value="<?= $hid ?>" <?= $sel ?>>
+              <?= $num ?> (<?= h($hi) ?>–<?= h($hf) ?>)
+            </option>
+          <?php endforeach; ?>
+        </select>
+        <?php if (empty($horarios)): ?>
+          <div style="color:#b00;margin-top:4px;">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
+        <?php endif; ?>
+      </div>
+    <?php else: ?>
+      <!-- En creación: selección múltiple (horarios[]) -->
+      <div>
+        <label>Período(s)</label>
+        <div class="grid-periodos">
+          <?php foreach ($horarios as $hrow): ?>
+            <?php
+              $hid=(int)($hrow['id']??0);
+              $hi=substr((string)($hrow['hora_inicio']??''),0,5);
+              $hf=substr((string)($hrow['hora_fin']??''),0,5);
+              $num=(int)($hrow['numero_periodo']??0);
+            ?>
+            <label class="chk">
+              <input type="checkbox" name="horarios[]" value="<?= $hid ?>">
+              <span><?= $num ?>) <?= h($hi) ?>–<?= h($hf) ?></span>
+            </label>
+          <?php endforeach; ?>
+        </div>
+        <?php if (empty($horarios)): ?>
+          <div style="color:#b00;margin-top:4px;">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
+        <?php else: ?>
+          <div class="hint">Marca uno o más períodos. Ej.: 1 y 2 ⇒ 06:45–08:15.</div>
+        <?php endif; ?>
+      </div>
+    <?php endif; ?>
 
     <!-- Aula -->
     <div>
@@ -125,7 +161,7 @@ $selectedHorarioId = $clase['horario_id'] ?? null;
     </div>
 
     <div style="margin-top:10px;">
-      <button type="submit"><?= !empty($isEdit)?'Actualizar':'Crear' ?></button>
+      <button type="submit"><?= $isEdit ? 'Actualizar' : 'Crear' ?></button>
       <a href="index.php?action=clases_index">Cancelar</a>
     </div>
   </form>

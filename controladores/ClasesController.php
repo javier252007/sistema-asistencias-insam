@@ -3,11 +3,6 @@
 
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../modelos/Clase.php';
-require_once __DIR__ . '/../modelos/Docente.php';
-require_once __DIR__ . '/../modelos/Grupo.php';
-require_once __DIR__ . '/../modelos/Asignatura.php';
-// Si tienes el modelo Horario, se usará; si no, caemos a SQL directo.
-// require_once __DIR__ . '/../modelos/Horario.php';
 
 class ClasesController {
     private ?PDO $pdo = null;
@@ -31,36 +26,26 @@ class ClasesController {
     }
 
     /* =========================
-       Helpers de catálogos
+       Fallbacks SQL catálogos
        ========================= */
-    /** Llama al primer método existente de la lista en el modelo dado. */
-    private function callFirstAvailable(object $model, array $candidates): ?array {
-        foreach ($candidates as $m) {
-            if (method_exists($model, $m)) return $model->{$m}();
-        }
-        return null;
-    }
-
-    /** Fallbacks SQL (si el modelo no tiene métodos de lista) */
-    private function listarDocentesFallback(PDO $pdo): array {
+    private function listarDocentes(PDO $pdo): array {
         $sql = "SELECT d.id, p.nombre
                   FROM docentes d
                   JOIN personas p ON p.id = d.persona_id
               ORDER BY p.nombre";
         return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
-    private function listarGruposFallback(PDO $pdo): array {
+    private function listarGrupos(PDO $pdo): array {
         $sql = "SELECT id, CONCAT(grado,' ',seccion,' (',anio_lectivo,')') AS nombre
                   FROM grupos
               ORDER BY grado, seccion";
         return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
-    private function listarAsignaturasFallback(PDO $pdo): array {
+    private function listarAsignaturas(PDO $pdo): array {
         $sql = "SELECT id, nombre FROM asignaturas ORDER BY nombre";
         return $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
     }
-    private function listarHorariosFallback(PDO $pdo): array {
-        // Ordenado por numero_periodo + hora_inicio por si hay duplicados de periodo
+    private function listarHorarios(PDO $pdo): array {
         $sql = "SELECT id, numero_periodo, hora_inicio, hora_fin
                   FROM horarios
               ORDER BY numero_periodo, hora_inicio";
@@ -98,7 +83,6 @@ class ClasesController {
 
         $mClase = new Clase($pdo);
 
-        // Requiere que el modelo Clase tenga obtenerDetalle() y estudiantesDeGrupo()
         $clase = method_exists($mClase, 'obtenerDetalle')
                  ? $mClase->obtenerDetalle($id)
                  : null;
@@ -124,29 +108,11 @@ class ClasesController {
         require_login(); require_admin();
         $pdo = $this->pdo();
 
-        // Docentes
-        $docModel = new Docente($pdo);
-        $docentes = $this->callFirstAvailable($docModel, ['todos','listar','getAll','all','obtenerTodos','listAll'])
-                 ?? $this->listarDocentesFallback($pdo);
-
-        // Grupos
-        $gruModel = new Grupo($pdo);
-        $grupos   = $this->callFirstAvailable($gruModel, ['todos','listar','getAll','all','obtenerTodos','listAll'])
-                 ?? $this->listarGruposFallback($pdo);
-
-        // Asignaturas
-        $asiModel = new Asignatura($pdo);
-        $asignaturas = $this->callFirstAvailable($asiModel, ['todas','todos','listar','getAll','all','obtenerTodos','listAll'])
-                     ?? $this->listarAsignaturasFallback($pdo);
-
-        // Horarios (períodos)
-        if (class_exists('Horario')) {
-            $horModel = new Horario($pdo);
-            $horarios = $this->callFirstAvailable($horModel, ['todos','listar','getAll','all','obtenerTodos','listAll'])
-                       ?? $this->listarHorariosFallback($pdo);
-        } else {
-            $horarios = $this->listarHorariosFallback($pdo);
-        }
+        // Catálogos por SQL directo (más simple, sin dependencias de modelos)
+        $docentes    = $this->listarDocentes($pdo);
+        $grupos      = $this->listarGrupos($pdo);
+        $asignaturas = $this->listarAsignaturas($pdo);
+        $horarios    = $this->listarHorarios($pdo);
 
         $isEdit = false;
         require __DIR__ . '/../views/Clases/form.php';
@@ -162,26 +128,10 @@ class ClasesController {
         $clase  = $mClase->obtener($id);
         if (!$clase) { $_SESSION['flash_msg'] = 'Clase no encontrada.'; header('Location: index.php?action=clases_index'); exit; }
 
-        // Listas igual que en new()
-        $docModel = new Docente($pdo);
-        $docentes = $this->callFirstAvailable($docModel, ['todos','listar','getAll','all','obtenerTodos','listAll'])
-                 ?? $this->listarDocentesFallback($pdo);
-
-        $gruModel = new Grupo($pdo);
-        $grupos   = $this->callFirstAvailable($gruModel, ['todos','listar','getAll','all','obtenerTodos','listAll'])
-                 ?? $this->listarGruposFallback($pdo);
-
-        $asiModel = new Asignatura($pdo);
-        $asignaturas = $this->callFirstAvailable($asiModel, ['todas','todos','listar','getAll','all','obtenerTodos','listAll'])
-                     ?? $this->listarAsignaturasFallback($pdo);
-
-        if (class_exists('Horario')) {
-            $horModel = new Horario($pdo);
-            $horarios = $this->callFirstAvailable($horModel, ['todos','listar','getAll','all','obtenerTodos','listAll'])
-                       ?? $this->listarHorariosFallback($pdo);
-        } else {
-            $horarios = $this->listarHorariosFallback($pdo);
-        }
+        $docentes    = $this->listarDocentes($pdo);
+        $grupos      = $this->listarGrupos($pdo);
+        $asignaturas = $this->listarAsignaturas($pdo);
+        $horarios    = $this->listarHorarios($pdo);
 
         $isEdit = true;
         require __DIR__ . '/../views/Clases/form.php';
@@ -202,28 +152,56 @@ class ClasesController {
         $grupo_id      = (int)($_POST['grupo_id'] ?? 0);
         $asignatura_id = ($_POST['asignatura_id'] ?? '') !== '' ? (int)$_POST['asignatura_id'] : null;
 
-        // Normaliza 'dia': acepta "Lunes" o 1..7 (tu columna es VARCHAR)
+        // Acepta "Lunes"/"1..7"; tu columna es VARCHAR
         $dia = $_POST['dia'] ?? '';
         $dia = is_numeric($dia) ? (int)$dia : trim((string)$dia);
 
-        $horario_id    = (int)($_POST['horario_id'] ?? 0);
-        $aula          = trim((string)($_POST['aula'] ?? ''));
+        // 🔥 NUEVO: SOLO múltiples períodos (horarios[])
+        $horariosSel = isset($_POST['horarios']) && is_array($_POST['horarios']) ? array_map('intval', $_POST['horarios']) : [];
+        $horariosSel = array_values(array_unique(array_filter($horariosSel, fn($v) => $v > 0)));
+
+        $aula = trim((string)($_POST['aula'] ?? ''));
         if ($aula === '') $aula = null;
 
-        if (!$docente_id || !$grupo_id || $dia === '' || !$horario_id) {
-            $_SESSION['flash_msg'] = 'Completa los campos requeridos.';
+        if (!$docente_id || !$grupo_id || $dia === '' || empty($horariosSel)) {
+            $_SESSION['flash_msg'] = 'Completa los campos requeridos y selecciona al menos un período.';
             header('Location: index.php?action=clases_new'); exit;
         }
 
         $mClase = new Clase($pdo);
-        if ($mClase->hayChoque(null, $dia, $horario_id, $docente_id, $grupo_id, $aula)) {
-            $_SESSION['flash_msg'] = 'Choque de horario: docente/grupo/aula ya ocupados en ese período.';
+
+        try {
+            $pdo->beginTransaction();
+
+            $creados  = 0;
+            $saltados = []; // horarios con choque
+
+            foreach ($horariosSel as $horario_id) {
+                if ($mClase->hayChoque(null, $dia, $horario_id, $docente_id, $grupo_id, $aula)) {
+                    $saltados[] = $horario_id;
+                    continue;
+                }
+                $ok = $mClase->crear($docente_id, $grupo_id, $asignatura_id, $dia, $horario_id, $aula);
+                if (!$ok) { throw new Exception('Error al crear una de las filas de clase.'); }
+                $creados++;
+            }
+
+            $pdo->commit();
+
+            if ($creados > 0) {
+                $_SESSION['flash_msg'] = "Clase creada en {$creados} período(s) "
+                    . (count($saltados) ? "(saltados por choque: ".implode(', ', $saltados).")" : "");
+                header('Location: index.php?action=clases_index'); exit;
+            } else {
+                $_SESSION['flash_msg'] = 'No se creó ninguna clase. Todos los períodos seleccionados tenían choque.';
+                header('Location: index.php?action=clases_new'); exit;
+            }
+        } catch (Throwable $e) {
+            if ($pdo->inTransaction()) $pdo->rollBack();
+            error_log('[ClasesController::createPost] '.$e->getMessage());
+            $_SESSION['flash_msg'] = 'Ocurrió un error al crear la clase.';
             header('Location: index.php?action=clases_new'); exit;
         }
-
-        $ok = $mClase->crear($docente_id, $grupo_id, $asignatura_id, $dia, $horario_id, $aula);
-        $_SESSION['flash_msg'] = $ok ? 'Clase creada.' : 'No se pudo crear.';
-        header('Location: index.php?action=clases_index'); exit;
     }
 
     public function update(): void {
@@ -240,6 +218,7 @@ class ClasesController {
         $dia = $_POST['dia'] ?? '';
         $dia = is_numeric($dia) ? (int)$dia : trim((string)$dia);
 
+        // Update mantiene período único (editas una fila concreta)
         $horario_id    = (int)($_POST['horario_id'] ?? 0);
         $aula          = trim((string)($_POST['aula'] ?? ''));
         if ($aula === '') $aula = null;

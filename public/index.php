@@ -34,22 +34,15 @@ function require_login(): void {
 function require_admin(): void {
     if (empty($_SESSION['user_id'])) {
         $_SESSION['error'] = 'Inicia sesión para continuar.';
-        header('Location: index.php?action=login'); // <- si no hay sesión, a login
+        header('Location: index.php?action=login');
         exit;
     }
     if (($_SESSION['rol'] ?? '') !== 'admin') {
         $_SESSION['error'] = 'Acceso restringido a administradores.';
-        header('Location: index.php?action=dashboard'); // <- logueado pero sin rol admin
+        header('Location: index.php?action=dashboard');
         exit;
     }
 }
-
-/* =========================
- * DEBUG DEV (opcional)
- * ========================= */
-// DESCOMENTA SOLO EN DESARROLLO PARA PROBAR RÁPIDO RUTAS PROTEGIDAS
-// if (!isset($_SESSION['user_id'])) $_SESSION['user_id'] = 1;
-// if (!isset($_SESSION['rol']))     $_SESSION['rol']     = 'admin';
 
 /* =========================
  * ROUTER
@@ -220,6 +213,24 @@ switch ($action) {
         }
         break;
 
+    /* NUEVO: HISTORIAL GENERAL */
+    case 'asistencia_historial':
+        try { (new AsistenciasController())->historial(); }
+        catch (Throwable $e) {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "⚠️ Error en asistencia_historial:\n\n{$e->getMessage()}\n\n{$e->getFile()}:{$e->getLine()}";
+        }
+        break;
+
+    /* NUEVO: HISTORIAL POR ESTUDIANTE */
+    case 'asistencia_historial_estudiante':
+        try { (new AsistenciasController())->historialEstudiante(); }
+        catch (Throwable $e) {
+            header('Content-Type: text/plain; charset=utf-8');
+            echo "⚠️ Error en asistencia_historial_estudiante:\n\n{$e->getMessage()}\n\n{$e->getFile()}:{$e->getLine()}";
+        }
+        break;
+
     case 'buscar_estudiante':
         try { (new AsistenciasController())->buscarEstudiante(); }
         catch (Throwable $e) {
@@ -254,13 +265,13 @@ switch ($action) {
         $controllerClases->index();
         break;
 
-    case 'clases_new':          // ← Botón “Nueva clase” viene aquí
+    case 'clases_new':
         require_login(); require_admin();
         if (method_exists($controllerClases, 'new')) $controllerClases->new();
-        else $controllerClases->create(); // por compatibilidad
+        else $controllerClases->create();
         break;
 
-    case 'clases_create':       // POST de creación
+    case 'clases_create':
         require_login(); require_admin();
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if (method_exists($controllerClases, 'store')) $controllerClases->store();
@@ -270,7 +281,7 @@ switch ($action) {
         }
         break;
 
-    case 'clases_show':         // Detalle (lista estudiantes del grupo)
+    case 'clases_show':
         require_login(); require_admin();
         $controllerClases->show();
         break;
@@ -298,7 +309,7 @@ switch ($action) {
         }
         break;
 
-    case 'horarios_disponibles': // AJAX opcional
+    case 'horarios_disponibles':
         require_login(); require_admin();
         if (method_exists($controllerClases, 'horariosDisponibles')) {
             $controllerClases->horariosDisponibles();

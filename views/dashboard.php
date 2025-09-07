@@ -18,9 +18,8 @@
           // NUEVO: Asistencia (kiosco por NIE)
           'asistencia_registro' => [
             'title' => 'Asistencia',
-            'desc'  => 'Marcar entrada por NIE',
+            'desc'  => 'Marcar entrada/salida por NIE',
             'icon'  => '🕒',
-            // Muestra a admin y, si quieres, a otros roles también:
             'enabled_roles' => ['admin','docente','orientador','directora','estudiante']
           ],
 
@@ -79,3 +78,4 @@
   </div>
 </body>
 </html>
+
