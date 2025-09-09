@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>Docentes — Listado</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/docentes.css">
+  <link rel="stylesheet" href="css/docentes/docentes.css">
 </head>
 <body>
   <div class="container">
@@ -86,9 +86,10 @@
       </div>
     <?php endif; ?>
 
-    <div style="margin-top:1rem;">
+    <div class="mt-10">
       <a class="btn secondary" href="index.php?action=dashboard">Volver al dashboard</a>
     </div>
   </div>
 </body>
 </html>
+

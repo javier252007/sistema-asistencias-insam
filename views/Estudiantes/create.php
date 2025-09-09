@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Registrar Estudiante</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/estudiantes.css">
+  <link rel="stylesheet" href="css/estudiantes/estudiantes.css">
 </head>
 <body>
   <?php
@@ -81,7 +81,7 @@
             </select>
           </div>
 
-          <!-- NUEVO: selector de Grupo -->
+          <!-- Selector de Grupo -->
           <div>
             <label for="grupo_id">Grupo*</label>
             <select id="grupo_id" name="grupo_id" required>
@@ -98,7 +98,6 @@
               <?php endforeach; ?>
             </select>
           </div>
-          <!-- /NUEVO -->
 
           <div class="full">
             <label for="foto">Foto (opcional)</label>

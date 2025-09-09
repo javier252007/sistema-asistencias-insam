@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Estudiantes — Listado</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/estudiantes.css">
+  <link rel="stylesheet" href="css/estudiantes/estudiantes.css">
 </head>
 <body>
   <div class="container">
@@ -57,7 +57,9 @@
               <td>
                 <?php
                   $grupoTxt = trim((string)($r['grado'] ?? '') . ' ' . (string)($r['seccion'] ?? ''));
-                  echo $grupoTxt !== '' ? htmlspecialchars($grupoTxt) : '<span class="badge badge-warning">Sin grupo</span>';
+                  echo $grupoTxt !== ''
+                    ? htmlspecialchars($grupoTxt)
+                    : '<span class="badge badge-warning">Sin grupo</span>';
                 ?>
               </td>
 
@@ -74,7 +76,7 @@
                 <form method="post"
                       action="index.php?action=estudiantes_destroy"
                       onsubmit="return confirm('Esta acción eliminará PERMANENTEMENTE al estudiante y sus registros relacionados. ¿Continuar?');"
-                      style="display:inline;">
+                      class="inline">
                   <input type="hidden" name="id" value="<?= (int)$r['id'] ?>">
                   <button class="btn danger small" type="submit">Eliminar</button>
                 </form>
@@ -100,7 +102,7 @@
          href="<?= $page >= $pages ? '#' : $base . '&page=' . ($page+1) ?>">Siguiente »</a>
     </div>
 
-    <div style="margin-top:1rem;">
+    <div class="mt-10">
       <a class="btn secondary" href="index.php?action=dashboard">Volver al dashboard</a>
     </div>
   </div>

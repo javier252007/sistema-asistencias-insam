@@ -34,12 +34,7 @@ $isEdit = !empty($isEdit);
 <meta charset="utf-8">
 <title><?= $isEdit ? 'Editar clase' : 'Nueva clase' ?></title>
 <link rel="stylesheet" href="css/dashboard.css">
-<style>
-  .grid-periodos{display:grid;grid-template-columns:repeat(4, minmax(0,1fr));gap:10px;margin-top:6px}
-  .chk{display:flex;gap:8px;align-items:center;border:1px solid #ddd;padding:8px;border-radius:8px;background:#fff}
-  .hint{color:#555;font-size:.9rem;margin-top:6px}
-  @media (max-width: 720px){ .grid-periodos{grid-template-columns:repeat(2, minmax(0,1fr));} }
-</style>
+<link rel="stylesheet" href="css/clases/clases.css">
 </head>
 <body>
 <div class="container">
@@ -106,7 +101,7 @@ $isEdit = !empty($isEdit);
 
     <!-- Período(s) -->
     <?php if ($isEdit): ?>
-      <!-- En edición: período único (mantiene compatibilidad con update()) -->
+      <!-- En edición: período único -->
       <div>
         <label>Período (número)</label>
         <select name="horario_id" required>
@@ -125,14 +120,14 @@ $isEdit = !empty($isEdit);
           <?php endforeach; ?>
         </select>
         <?php if (empty($horarios)): ?>
-          <div style="color:#b00;margin-top:4px;">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
+          <div class="warn mt-04">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
         <?php endif; ?>
       </div>
     <?php else: ?>
       <!-- En creación: selección múltiple (horarios[]) -->
       <div>
         <label>Período(s)</label>
-        <div class="grid-periodos">
+        <div class="grid-periodos mt-06">
           <?php foreach ($horarios as $hrow): ?>
             <?php
               $hid=(int)($hrow['id']??0);
@@ -147,7 +142,7 @@ $isEdit = !empty($isEdit);
           <?php endforeach; ?>
         </div>
         <?php if (empty($horarios)): ?>
-          <div style="color:#b00;margin-top:4px;">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
+          <div class="warn mt-04">No hay períodos cargados. Crea la tabla <code>horarios</code> y agrega filas.</div>
         <?php else: ?>
           <div class="hint">Marca uno o más períodos. Ej.: 1 y 2 ⇒ 06:45–08:15.</div>
         <?php endif; ?>
@@ -160,7 +155,7 @@ $isEdit = !empty($isEdit);
       <input type="text" name="aula" value="<?= h($clase['aula'] ?? '') ?>">
     </div>
 
-    <div style="margin-top:10px;">
+    <div class="mt-10">
       <button type="submit"><?= $isEdit ? 'Actualizar' : 'Crear' ?></button>
       <a href="index.php?action=clases_index">Cancelar</a>
     </div>
@@ -168,3 +163,4 @@ $isEdit = !empty($isEdit);
 </div>
 </body>
 </html>
+

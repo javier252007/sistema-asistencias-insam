@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Grupos</title>
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link rel="stylesheet" href="css/grupos.css" />
+  <link rel="stylesheet" href="css/grupos/grupos.css" />
 </head>
 <body>
   <div class="container">
@@ -105,3 +105,4 @@
   </div>
 </body>
 </html>
+

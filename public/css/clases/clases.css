@@ -1,0 +1,47 @@
+/* ====== Módulo: Clases ====== */
+
+/* Utilitarias generales */
+.text-center { text-align:center; }
+.mt-04 { margin-top:.4rem; }
+.mt-06 { margin-top:.6rem; }
+.mt-10 { margin-top:10px; }
+.mb-15 { margin-bottom:15px; }
+.w-100 { width:100%; }
+.inline { display:inline; }
+
+.form-inline { display:flex; gap:.5rem; align-items:center; }
+
+/* Tablas */
+.table { width:100%; border-collapse:collapse; }
+.table th, .table td { padding:.5rem; border-bottom:1px solid #ddd; text-align:left; }
+.table-responsive { width:100%; overflow-x:auto; }
+
+/* Interacciones en listados */
+tr.clickable:hover { background:#f5f5f5; cursor:pointer; }
+.actions a, .actions form { display:inline-block; margin-right:6px; }
+
+/* Grillas y badges usadas en show.php */
+.grid { display:grid; grid-template-columns: repeat(2,1fr); gap:8px; }
+.muted { color:#777; }
+.toolbar { margin:10px 0; display:flex; gap:8px; align-items:center; }
+
+.badge { display:inline-block; padding:2px 6px; border-radius:4px; }
+.badge.ok  { background:#e6ffed; color:#0a7a2d; }
+.badge.off { background:#f2f2f2; color:#555; }
+
+/* Grid de períodos y checboxes del form */
+.grid-periodos { display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px; }
+.chk { display:flex; gap:8px; align-items:center; border:1px solid #ddd; padding:8px; border-radius:8px; background:#fff; }
+.hint { color:#555; font-size:.9rem; margin-top:6px; }
+.warn { color:#b00; margin-top:4px; }
+
+/* Paginación */
+.pagination { display:flex; gap:8px; flex-wrap:wrap; }
+.pagination a { text-decoration:none; }
+.pagination a.is-active { font-weight:bold; }
+
+/* Responsive */
+@media (max-width: 720px){
+  .grid { grid-template-columns:1fr; }
+  .grid-periodos { grid-template-columns:repeat(2, minmax(0,1fr)); }
+}

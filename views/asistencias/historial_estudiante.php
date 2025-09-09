@@ -1,29 +1,21 @@
-<?php
-// views/asistencias/historial_estudiante.php
-?>
+<?php // views/asistencias/historial_estudiante.php ?>
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <title>Historial del Estudiante</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!-- CSS global existente -->
   <link rel="stylesheet" href="css/asistencia.css">
-  <style>
-    .toolbar {display:flex;gap:.5rem;align-items:center;margin-bottom:1rem;flex-wrap:wrap}
-    .toolbar a.btn {text-decoration:none;padding:.45rem .8rem;border:1px solid #0d6efd;border-radius:10px;color:#0d6efd}
-    .toolbar .btn-primary {background:#0d6efd;color:#fff}
-    .table {width:100%;border-collapse: collapse}
-    th, td {padding:.5rem;border-bottom:1px solid #ddd;text-align:left}
-    .muted {color:#555;font-size:.95rem}
-    .badge {display:inline-block;padding:.2rem .5rem;border-radius:6px;border:1px solid #ccc}
-    .pill {display:inline-block;padding:.25rem .6rem;border:1px solid #ccc;border-radius:999px;background:#f7f7f7}
-  </style>
+  <!-- CSS del módulo Asistencias -->
+  <link rel="stylesheet" href="css/asistencias/asistencias.css">
 </head>
 <body>
 <div class="box">
   <div class="toolbar">
     <a class="btn" href="index.php?action=asistencia_historial">← Volver al historial general</a>
-    <form method="get" action="index.php" style="display:flex;gap:.5rem;align-items:center">
+    <form method="get" action="index.php" class="form-inline">
       <input type="hidden" name="action" value="asistencia_historial_estudiante">
       <input type="hidden" name="id" value="<?= (int)$estudiante['id'] ?>">
       <input type="date" name="fecha" value="<?= htmlspecialchars($_GET['fecha'] ?? '') ?>">
@@ -52,7 +44,7 @@
       </thead>
       <tbody>
       <?php if (empty($result['data'])): ?>
-        <tr><td colspan="3" style="text-align:center">Sin registros</td></tr>
+        <tr><td colspan="3" class="text-center">Sin registros</td></tr>
       <?php else: ?>
         <?php foreach ($result['data'] as $r): ?>
           <tr>
@@ -77,12 +69,13 @@
     ]);
   ?>
   <nav aria-label="Paginación">
-    <ul class="pagination" style="display:flex;gap:.5rem;list-style:none;padding:0;margin-top:1rem">
+    <ul class="pagination">
       <li><a class="btn" href="index.php?<?= $qs ?>&page=<?= max(1,$page-1) ?>">Anterior</a></li>
-      <li><span class="btn" style="pointer-events:none">Página <?= $page ?> de <?= $pages ?></span></li>
+      <li><span class="btn no-click">Página <?= $page ?> de <?= $pages ?></span></li>
       <li><a class="btn" href="index.php?<?= $qs ?>&page=<?= min($pages,$page+1) ?>">Siguiente</a></li>
     </ul>
   </nav>
 </div>
 </body>
 </html>
+

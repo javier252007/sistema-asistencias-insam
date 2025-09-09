@@ -1,4 +1,4 @@
-/* USUARIOS - estilos específicos del módulo */
+/* ===== USUARIOS - estilos del módulo ===== */
 
 /* Mensajes de sistema */
 .success, .error {
@@ -10,6 +10,15 @@
 .success { background: #ecfdf5; color: #065f46; border: 1px solid #10b981; }
 .error   { background: #fef2f2; color: #991b1b; border: 1px solid #ef4444; }
 
+/* Tarjeta (para edit) */
+.card {
+  border-radius: .75rem;
+  background: #fff;
+  box-shadow: 0 6px 18px rgba(0,0,0,.06);
+}
+.card-body { padding: 16px; }
+@media (min-width:768px){ .card-body{ padding:24px; } }
+
 /* Toolbar */
 .toolbar {
   display: flex;
@@ -19,8 +28,14 @@
   justify-content: space-between;
   margin: 1rem 0;
 }
-.toolbar .left,
-.toolbar .right { display: flex; gap: .5rem; align-items: center; }
+.toolbar .left, .toolbar .right { display: flex; gap: .5rem; align-items: center; }
+
+/* Inputs búsqueda */
+.search-input {
+  padding: .55rem .7rem;
+  border: 1px solid #e5e7eb;
+  border-radius: .6rem;
+}
 
 /* Tabla */
 .table-wrap {
@@ -46,6 +61,7 @@
   background: #f8fafc;
 }
 .table tbody tr:hover { background: #f9fafb; }
+.table .empty { text-align:center; padding:12px; color:#6b7280; }
 
 /* Badges de rol */
 .badge {
@@ -102,10 +118,20 @@
   margin-top: .5rem;
 }
 
-/* Botones adicionales */
+/* Botones */
+.btn { border: 0; border-radius: .6rem; padding: .6rem .9rem; cursor: pointer; text-decoration:none; display:inline-block; }
+.btn.primary { background: #3b82f6; color: #fff; font-weight: 700; }
 .btn.secondary { background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; }
 .btn.secondary:hover { background: #e5e7eb; }
+.btn.ghost { border: 1px solid #c8c9d3; color: #3a3b45; background: #fff; }
+.btn.link { background: transparent; color: #3b82f6; text-decoration: underline; }
+.btn.danger { background: #ef4444; color: #fff; }
+.btn.small { padding:.35rem .6rem; font-size:.9rem; }
 .btn.icon { display: inline-flex; gap: .4rem; align-items: center; }
+
+/* Utilitarias */
+.inline { display:inline; }
+.mt-10 { margin-top:10px; }
 
 /* Responsive */
 @media (max-width: 800px) {

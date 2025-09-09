@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Editar usuario</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/grupos.css">
+  <link rel="stylesheet" href="css/usuarios/usuarios.css">
 </head>
 <body>
   <div class="container">
@@ -23,7 +23,6 @@
             <div class="form-field">
               <label>Persona</label>
               <input type="text" value="<?= htmlspecialchars($usuario['persona'] ?? '') ?>" readonly>
-              <!-- Si quisieras permitir cambiar la persona, aquí pondrías un <select> -->
             </div>
 
             <div class="form-field">
@@ -57,7 +56,7 @@
       </div>
     </div>
 
-    <p style="margin-top:14px;">
+    <p class="mt-10">
       <a class="btn link" href="index.php?action=usuarios_index">Volver</a>
     </p>
   </div>

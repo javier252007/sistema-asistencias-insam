@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <title>Nuevo grupo</title>
   <link rel="stylesheet" href="css/dashboard.css" />
-  <link rel="stylesheet" href="css/grupos.css" />
+  <link rel="stylesheet" href="css/grupos/grupos.css" />
 </head>
 <body>
   <div class="container">
@@ -49,7 +49,6 @@
             </select>
           </div>
 
-          <!-- Ocupa el ancho completo -->
           <div class="form-field span-2">
             <label for="docente_guia_id">Docente guía</label>
             <select id="docente_guia_id" name="docente_guia_id">
@@ -70,3 +69,4 @@
   </div>
 </body>
 </html>
+

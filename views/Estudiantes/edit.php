@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>Editar estudiante</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/estudiantes.css">
+  <link rel="stylesheet" href="css/estudiantes/estudiantes.css">
 </head>
 <body>
   <div class="container">
@@ -69,7 +69,6 @@
               </select>
             </div>
 
-            <!-- NUEVO: selector de Grupo -->
             <div>
               <label for="grupo_id">Grupo*</label>
               <select id="grupo_id" name="grupo_id" required>
@@ -86,7 +85,6 @@
                 <?php endforeach; ?>
               </select>
             </div>
-            <!-- /NUEVO -->
           </div>
 
           <div class="actions">

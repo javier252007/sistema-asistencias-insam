@@ -1,0 +1,160 @@
+/* ============================
+   ASISTENCIAS - CSS UNIFICADO
+   ============================ */
+
+/* Paleta y constantes */
+:root {
+  --azul: #0d6efd;
+  --verde: #198754;
+  --borde: #ddd;
+  --muted: #555;
+}
+
+/* Base */
+body {
+  font-family: system-ui, Arial, sans-serif;
+  margin: 20px;
+  background: #fff;
+  color: #111;
+}
+
+/* Contenedores */
+.box { max-width: 1000px; margin: 24px auto; padding: 0 12px; }
+.wrap { max-width: 920px;  margin: 24px auto; padding: 0 12px; }
+
+/* Layout */
+.row   { display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.left  { flex:0 0 240px; }
+.right { flex:1; }
+
+/* Botones */
+.btn{
+  display:inline-block;
+  text-decoration:none;
+  padding:.55rem .9rem;
+  border:1px solid var(--azul);
+  border-radius:10px;
+  color:var(--azul);
+  background:#fff;
+  cursor:pointer;
+}
+.btn:disabled { opacity:.5; cursor:not-allowed; }
+
+.btn-primary{
+  background:var(--azul);
+  color:#fff;
+  border-color:var(--azul);
+}
+.btn-success{
+  background:var(--verde);
+  color:#fff;
+  border-color:var(--verde);
+}
+.btn-sm{
+  padding:.3rem .6rem;
+  border:1px solid var(--azul);
+  border-radius:8px;
+  text-decoration:none;
+  color:var(--azul);
+}
+
+/* Barra de herramientas */
+.toolbar{
+  display:flex;
+  gap:.5rem;
+  align-items:center;
+  margin-bottom:1rem;
+  flex-wrap:wrap;
+}
+.toolbar a.btn{
+  text-decoration:none;
+  padding:.45rem .8rem;
+  border:1px solid var(--azul);
+  border-radius:10px;
+  color:var(--azul);
+  background:#fff;
+}
+.toolbar .btn-primary{ background:#0d6efd; color:#fff; }
+
+/* Tipografía y etiquetas */
+.muted{ color:var(--muted); font-size:.95rem; }
+.badge{ display:inline-block; padding:.2rem .5rem; border-radius:6px; border:1px solid #ccc; }
+.pill { display:inline-block; padding:.25rem .6rem; border:1px solid #ccc; border-radius:999px; background:#f7f7f7; }
+
+/* Tablas */
+.table{ width:100%; border-collapse:collapse; }
+th, td{ padding:.5rem; border-bottom:1px solid #ddd; text-align:left; }
+.table-responsive{ width:100%; overflow-x:auto; }
+
+/* Cards / inputs / listas */
+.card{
+  border:1px solid var(--borde);
+  border-radius:12px;
+  padding:14px;
+  margin-top:12px;
+  background:#fff;
+}
+.input{
+  width:100%;
+  padding:.55rem .7rem;
+  border:1px solid var(--borde);
+  border-radius:10px;
+  font-size:1rem;
+}
+.list{
+  border:1px solid var(--borde);
+  border-radius:10px;
+  margin-top:8px;
+  max-height:280px;
+  overflow:auto;
+}
+.item{
+  padding:.5rem .7rem;
+  border-bottom:1px solid var(--borde);
+  cursor:pointer;
+}
+.item:last-child{ border-bottom:none; }
+.item:hover{ background:#f6f9ff; }
+
+/* Grupos de botones */
+.btn-group{ display:flex; gap:10px; flex-wrap:wrap; }
+
+/* Flash / mensajes */
+.flash{
+  margin:.6rem 0;
+  padding:.6rem .9rem;
+  border:1px solid #9f9;
+  background:#efffee;
+  border-radius:10px;
+}
+.flash.error{
+  background:#fde2e1;
+  color:#8a1f17;
+  border-color:#f5c2c0;
+}
+
+/* Paginación */
+.pagination{
+  display:flex;
+  gap:.5rem;
+  list-style:none;
+  padding:0;
+  margin-top:1rem;
+}
+
+/* Utilitarias (para reemplazar inlines) */
+.form-inline{ display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+.text-center{ text-align:center; }
+.no-click{ pointer-events:none; }
+.mb-10{ margin-bottom:10px; }
+.m-0{ margin:0; }
+.mt-04{ margin:.4rem 0 0; }
+.mt-12{ margin-top:12px; }
+.mt-14{ margin-top:14px; }
+.hidden{ display:none; }
+
+/* Responsive */
+@media (max-width:700px){
+  .left{ flex:1 1 100%; }
+  .right{ flex:1 1 100%; }
+}

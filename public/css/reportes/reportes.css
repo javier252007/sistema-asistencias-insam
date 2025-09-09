@@ -1,0 +1,78 @@
+/* ====== Módulo: Reportes ====== */
+
+.muted { color:#555; }
+
+/* Tarjeta */
+.card{
+  border:1px solid #ddd;
+  border-radius:10px;
+  padding:14px;
+  margin:10px 0;
+  background:#fff;
+}
+
+/* Flash / mensajes */
+.flash{
+  background:#eef6ff;
+  color:#0b4b91;
+  padding:8px 10px;
+  border-radius:6px;
+  margin:8px 0;
+}
+
+/* Formularios en línea */
+.form-inline{
+  display:flex;
+  flex-wrap:wrap;
+  gap:.6rem .8rem;
+  align-items:flex-end;
+  margin:.6rem 0 1rem;
+}
+.form-row{ display:flex; flex-direction:column; gap:.25rem; }
+.form-row label{ font-weight:600; }
+.form-inline input[type="date"],
+.form-inline select{
+  padding:.5rem .6rem;
+  border:1px solid #ddd;
+  border-radius:8px;
+  background:#fff;
+}
+.btn.primary{
+  background:#3b82f6;
+  color:#fff;
+  border:0;
+  border-radius:8px;
+  padding:.55rem .9rem;
+  cursor:pointer;
+}
+.btn.secondary{
+  background:#e5e7eb;
+  border:1px solid #d1d5db;
+  color:#111827;
+  border-radius:8px;
+  padding:.5rem .8rem;
+  text-decoration:none;
+}
+
+/* Tablas */
+.table-wrap{ overflow-x:auto; border-radius:10px; }
+.table{
+  width:100%;
+  border-collapse:collapse;
+  background:#fff;
+}
+.table th,.table td{
+  border:1px solid #ddd;
+  padding:8px;
+  text-align:left;
+}
+.table thead th{ background:#f7f7f7; }
+
+/* Utils */
+.mt-10{ margin-top:10px; }
+
+/* Responsive */
+@media (max-width:720px){
+  .form-inline{ flex-direction:column; align-items:stretch; }
+  .form-row{ width:100%; }
+}

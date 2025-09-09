@@ -4,11 +4,7 @@
   <meta charset="UTF-8">
   <title>Nuevo usuario</title>
   <link rel="stylesheet" href="css/dashboard.css">
-   <link rel="stylesheet" href="css/usuarios.css">
-  <style>
-    .form-grid { display:grid; grid-template-columns: 1fr 1fr; gap:1rem; }
-    .form-grid .full { grid-column: 1 / -1; }
-  </style>
+  <link rel="stylesheet" href="css/usuarios/usuarios.css">
 </head>
 <body>
   <div class="container">
@@ -20,7 +16,7 @@
 
     <form method="post" action="index.php?action=usuarios_store">
       <div class="form-grid">
-        <div>
+        <div class="form-field">
           <label>Persona</label>
           <select name="persona_id" required>
             <option value="">-- Selecciona persona --</option>
@@ -30,17 +26,17 @@
           </select>
         </div>
 
-        <div>
+        <div class="form-field">
           <label>Usuario</label>
           <input type="text" name="usuario" minlength="3" required placeholder="ej. jperez">
         </div>
 
-        <div>
+        <div class="form-field">
           <label>Contraseña</label>
           <input type="password" name="contrasena" minlength="4" required>
         </div>
 
-        <div>
+        <div class="form-field">
           <label>Rol</label>
           <select name="rol" required>
             <option value="">-- Selecciona rol --</option>
@@ -50,9 +46,9 @@
           </select>
         </div>
 
-        <div class="full" style="margin-top: 1rem;">
-          <button class="btn" type="submit">💾 Guardar</button>
-          <a class="btn" href="index.php?action=usuarios_index">Cancelar</a>
+        <div class="full form-actions">
+          <button class="btn primary" type="submit">💾 Guardar</button>
+          <a class="btn secondary" href="index.php?action=usuarios_index">Cancelar</a>
         </div>
       </div>
     </form>

@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <title>Registrar Docente</title>
   <link rel="stylesheet" href="css/dashboard.css">
-  <link rel="stylesheet" href="css/docentes.css">
+  <link rel="stylesheet" href="css/docentes/docentes.css">
 </head>
 <body>
   <div class="container">
@@ -13,9 +13,13 @@
 
     <?php if (!empty($flash)): ?>
       <?php if ($flash['type'] === 'error'): ?>
-        <div class="alert error"><ul><?php foreach ($flash['messages'] as $m): ?><li><?= htmlspecialchars($m) ?></li><?php endforeach; ?></ul></div>
+        <div class="alert error">
+          <ul><?php foreach ($flash['messages'] as $m): ?><li><?= htmlspecialchars($m) ?></li><?php endforeach; ?></ul>
+        </div>
       <?php else: ?>
-        <div class="alert success"><?php foreach ($flash['messages'] as $m): ?><div><?= htmlspecialchars($m) ?></div><?php endforeach; ?></div>
+        <div class="alert success">
+          <?php foreach ($flash['messages'] as $m): ?><div><?= htmlspecialchars($m) ?></div><?php endforeach; ?>
+        </div>
       <?php endif; ?>
     <?php endif; ?>
 
