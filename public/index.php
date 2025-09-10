@@ -20,6 +20,9 @@ require_once __DIR__ . '/../controladores/UsuariosController.php';
 require_once __DIR__ . '/../controladores/AsistenciasController.php';
 require_once __DIR__ . '/../controladores/ClasesController.php';
 require_once __DIR__ . '/../controladores/ReportesController.php';
+/* Controladores nuevos usados */
+require_once __DIR__ . '/../controladores/AsistenciasClaseController.php';
+require_once __DIR__ . '/../controladores/FaltasController.php';
 
 /* =========================
  * HELPERS DE SEGURIDAD
@@ -213,7 +216,6 @@ switch ($action) {
         }
         break;
 
-    /* NUEVO: HISTORIAL GENERAL */
     case 'asistencia_historial':
         try { (new AsistenciasController())->historial(); }
         catch (Throwable $e) {
@@ -222,7 +224,6 @@ switch ($action) {
         }
         break;
 
-    /* NUEVO: HISTORIAL POR ESTUDIANTE */
     case 'asistencia_historial_estudiante':
         try { (new AsistenciasController())->historialEstudiante(); }
         catch (Throwable $e) {
@@ -286,6 +287,11 @@ switch ($action) {
         $controllerClases->show();
         break;
 
+    case 'clases_asistencia':
+        require_login(); require_admin();
+        $controllerClases->asistencia();
+        break;
+
     case 'clases_edit':
         require_login(); require_admin();
         $controllerClases->edit();
@@ -319,20 +325,34 @@ switch ($action) {
         }
         break;
 
-    /* ---------- REPORTES ---------- */
+    /* ---------- REPORTES (limpio) ---------- */
     case 'reportes':
         require_login();
         $controllerReportes->index();
         break;
 
-    case 'reporte_institucional':
-        require_login();
-        $controllerReportes->generarInstitucional();
+    case 'reporte_incidentes_historial':
+        require_login(); require_admin();
+        (new ReportesController())->incidentesHistorial();
         break;
 
-    case 'reporte_clase':
-        require_login();
-        $controllerReportes->generarPorClase();
+    /* ---------- ACCIONES: asistencia por clase y faltas ---------- */
+    case 'asistencias_store':
+        require_login(); require_admin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            (new AsistenciasClaseController())->store();
+        } else {
+            header('Location: index.php?action=clases_index');
+        }
+        break;
+
+    case 'faltas_store':
+        require_login(); require_admin();
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            (new FaltasController())->store();
+        } else {
+            header('Location: index.php?action=clases_index');
+        }
         break;
 
     /* ---------- DEFAULT ---------- */

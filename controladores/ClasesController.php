@@ -26,7 +26,7 @@ class ClasesController {
     }
 
     /* =========================
-       Fallbacks SQL catálogos
+       Catálogos base
        ========================= */
     private function listarDocentes(PDO $pdo): array {
         $sql = "SELECT d.id, p.nombre
@@ -53,6 +53,103 @@ class ClasesController {
     }
 
     /* =========================
+       Helpers de asistencia/faltas
+       ========================= */
+
+    /**
+     * Catálogo de tipos de falta según tu esquema:
+     * tipos_falta(id, codigo, descripcion, tipo ENUM('leve','grave','muy grave'), sancion)
+     */
+    private function tiposFalta(PDO $pdo): array {
+        $fallback = [1 => 'Leve', 2 => 'Grave', 3 => 'Muy grave'];
+        try {
+            $rows = $pdo->query("SELECT id, tipo, descripcion FROM tipos_falta ORDER BY id")->fetchAll(PDO::FETCH_ASSOC);
+            if (!$rows) return $fallback;
+
+            $map = [];
+            foreach ($rows as $r) {
+                $id   = (int)$r['id'];
+                $text = $r['tipo'] ?: ($r['descripcion'] ?? '');
+                if ($text === '') $text = 'Tipo '.$id;
+                $map[$id] = mb_convert_case($text, MB_CASE_TITLE, "UTF-8"); // “leve” -> “Leve”
+            }
+            return $map ?: $fallback;
+        } catch (Throwable $e) {
+            return $fallback;
+        }
+    }
+
+    /**
+     * Asistencias del día para la clase.
+     * Tu tabla tiene columnas: registrada_en (DATETIME) y estado (ENUM).
+     */
+    private function asistenciasDelDia(PDO $pdo, int $claseId, string $fecha): array {
+        try {
+            $st = $pdo->prepare(
+                "SELECT estudiante_id,
+                        estado AS tipo,
+                        NULL   AS observacion
+                   FROM asistencias_clase
+                  WHERE clase_id = :c
+                    AND DATE(registrada_en) = :f"
+            );
+            $st->execute([':c'=>$claseId, ':f'=>$fecha]);
+            $map = [];
+            foreach ($st->fetchAll() as $r) {
+                $map[(int)$r['estudiante_id']] = [
+                    'tipo'        => $r['tipo'],
+                    'observacion' => $r['observacion'] // será NULL
+                ];
+            }
+            return $map;
+        } catch (Throwable $e) { return []; }
+    }
+
+    private function resumenAsistencias(PDO $pdo, int $claseId, string $fecha): array {
+        $res = ['presente'=>0,'ausente'=>0,'justificado'=>0];
+        try {
+            $st = $pdo->prepare(
+                "SELECT estado AS tipo, COUNT(*) total
+                   FROM asistencias_clase
+                  WHERE clase_id = :c
+                    AND DATE(registrada_en) = :f
+               GROUP BY estado"
+            );
+            $st->execute([':c'=>$claseId, ':f'=>$fecha]);
+            foreach ($st->fetchAll() as $r) {
+                $t = $r['tipo'];
+                if (isset($res[$t])) $res[$t] = (int)$r['total'];
+            }
+        } catch (Throwable $e) {}
+        return $res;
+    }
+
+    /**
+     * Faltas/Incidentes del día: ahora lee de incidentes_estudiantes + tipos_falta
+     */
+    private function faltasDelDia(PDO $pdo, int $claseId, string $fecha): array {
+        try {
+            $sql = "SELECT  ie.id,
+                            ie.estudiante_id,
+                            ie.falta_id       AS tipo_id,
+                            COALESCE(NULLIF(tf.tipo,''), tf.descripcion, CONCAT('Tipo ', tf.id)) AS tipo,
+                            ie.observacion    AS descripcion
+                      FROM incidentes_estudiantes ie
+                 LEFT JOIN tipos_falta tf ON tf.id = ie.falta_id
+                     WHERE ie.clase_id = :c
+                       AND ie.fecha    = :f
+                  ORDER BY ie.id DESC";
+            $st = $pdo->prepare($sql);
+            $st->execute([':c'=>$claseId, ':f'=>$fecha]);
+            $rows = $st->fetchAll();
+            foreach ($rows as &$r) {
+                if (!empty($r['tipo'])) $r['tipo'] = mb_convert_case($r['tipo'], MB_CASE_TITLE, "UTF-8");
+            }
+            return $rows;
+        } catch (Throwable $e) { return []; }
+    }
+
+    /* =========================
        Listado
        ========================= */
     public function index(): void {
@@ -73,7 +170,7 @@ class ClasesController {
     }
 
     /* =========================
-       Detalle (ver clase)
+       Detalle (Ver clase) — vista limpia
        ========================= */
     public function show(): void {
         require_login(); require_admin();
@@ -82,21 +179,44 @@ class ClasesController {
         if ($id <= 0) { header('Location: index.php?action=clases_index'); exit; }
 
         $mClase = new Clase($pdo);
-
-        $clase = method_exists($mClase, 'obtenerDetalle')
-                 ? $mClase->obtenerDetalle($id)
-                 : null;
-
+        $clase = method_exists($mClase, 'obtenerDetalle') ? $mClase->obtenerDetalle($id) : null;
         if (!$clase || empty($clase['grupo_id'])) {
             $_SESSION['flash'] = ['type'=>'error','messages'=>['Clase o grupo no encontrado.']];
             header('Location: index.php?action=clases_index'); exit;
         }
-
         $estudiantes = method_exists($mClase, 'estudiantesDeGrupo')
-                       ? $mClase->estudiantesDeGrupo((int)$clase['grupo_id'])
-                       : [];
+                     ? $mClase->estudiantesDeGrupo((int)$clase['grupo_id'])
+                     : [];
 
         require __DIR__ . '/../views/Clases/show.php';
+    }
+
+    /* =========================
+       Nueva vista: Asistencia y Reporte
+       ========================= */
+    public function asistencia(): void {
+        require_login(); require_admin();
+        $pdo    = $this->pdo();
+        $id     = (int)($_GET['id'] ?? 0);
+        if ($id <= 0) { header('Location: index.php?action=clases_index'); exit; }
+
+        $mClase = new Clase($pdo);
+        $clase = method_exists($mClase, 'obtenerDetalle') ? $mClase->obtenerDetalle($id) : null;
+        if (!$clase || empty($clase['grupo_id'])) {
+            $_SESSION['flash'] = ['type'=>'error','messages'=>['Clase o grupo no encontrado.']];
+            header('Location: index.php?action=clases_index'); exit;
+        }
+        $estudiantes = method_exists($mClase, 'estudiantesDeGrupo')
+                     ? $mClase->estudiantesDeGrupo((int)$clase['grupo_id'])
+                     : [];
+
+        $fecha = $_GET['fecha'] ?? date('Y-m-d');
+        $asistencias = $this->asistenciasDelDia($pdo, $id, $fecha);
+        $resumenAsis = $this->resumenAsistencias($pdo, $id, $fecha);
+        $tiposFalta  = $this->tiposFalta($pdo);
+        $faltasDia   = $this->faltasDelDia($pdo, $id, $fecha);
+
+        require __DIR__ . '/../views/Clases/asistencia.php';
     }
 
     /* =========================
@@ -108,7 +228,6 @@ class ClasesController {
         require_login(); require_admin();
         $pdo = $this->pdo();
 
-        // Catálogos por SQL directo (más simple, sin dependencias de modelos)
         $docentes    = $this->listarDocentes($pdo);
         $grupos      = $this->listarGrupos($pdo);
         $asignaturas = $this->listarAsignaturas($pdo);
@@ -152,11 +271,9 @@ class ClasesController {
         $grupo_id      = (int)($_POST['grupo_id'] ?? 0);
         $asignatura_id = ($_POST['asignatura_id'] ?? '') !== '' ? (int)$_POST['asignatura_id'] : null;
 
-        // Acepta "Lunes"/"1..7"; tu columna es VARCHAR
         $dia = $_POST['dia'] ?? '';
         $dia = is_numeric($dia) ? (int)$dia : trim((string)$dia);
 
-        // 🔥 NUEVO: SOLO múltiples períodos (horarios[])
         $horariosSel = isset($_POST['horarios']) && is_array($_POST['horarios']) ? array_map('intval', $_POST['horarios']) : [];
         $horariosSel = array_values(array_unique(array_filter($horariosSel, fn($v) => $v > 0)));
 
@@ -174,7 +291,7 @@ class ClasesController {
             $pdo->beginTransaction();
 
             $creados  = 0;
-            $saltados = []; // horarios con choque
+            $saltados = [];
 
             foreach ($horariosSel as $horario_id) {
                 if ($mClase->hayChoque(null, $dia, $horario_id, $docente_id, $grupo_id, $aula)) {
@@ -218,7 +335,6 @@ class ClasesController {
         $dia = $_POST['dia'] ?? '';
         $dia = is_numeric($dia) ? (int)$dia : trim((string)$dia);
 
-        // Update mantiene período único (editas una fila concreta)
         $horario_id    = (int)($_POST['horario_id'] ?? 0);
         $aula          = trim((string)($_POST['aula'] ?? ''));
         if ($aula === '') $aula = null;
@@ -239,9 +355,6 @@ class ClasesController {
         header('Location: index.php?action=clases_index'); exit;
     }
 
-    /* =========================
-       Eliminar
-       ========================= */
     public function destroy(): void {
         require_login(); require_admin();
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') { header('Location: index.php?action=clases_index'); exit; }
@@ -253,7 +366,7 @@ class ClasesController {
     }
 
     /* =========================
-       (Opcional) API para periodos libres
+       API períodos libres
        ========================= */
     public function horariosDisponibles(): void {
         require_login(); require_admin();
