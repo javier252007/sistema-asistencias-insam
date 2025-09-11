@@ -16,6 +16,7 @@ class AsistenciasClaseController {
             $this->pdo = new PDO($dsn, DB_USER, DB_PASS, [
                 PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+                PDO::ATTR_EMULATE_PREPARES => false,
             ]);
         }
         return $this->pdo;
@@ -67,7 +68,7 @@ class AsistenciasClaseController {
             header('Location:index.php?action=docente_clases'); exit;
         }
 
-        // Datos de la clase (usa columnas reales; no existe 'nombre' en 'clases')
+        // Datos de la clase
         $stInfo = $pdo->prepare("SELECT id, grupo_id, asignatura_id, aula, dia, horario_id FROM clases WHERE id=:c");
         $stInfo->execute([':c'=>$claseId]);
         $clase = $stInfo->fetch(PDO::FETCH_ASSOC);
@@ -84,39 +85,43 @@ class AsistenciasClaseController {
             $asignaturaNombre = $stAsig->fetchColumn() ?: null;
         }
 
-// === LISTA DE ESTUDIANTES POR GRUPO DE LA CLASE ===
-// estudiantes.grupo_id = clases.grupo_id
-$sqlEst = "
-    SELECT 
-        e.id,
-        e.NIE AS nie,                  -- <== alias en minúsculas
-        per.nombre AS nombre
-    FROM estudiantes e
-    JOIN personas  per ON per.id = e.persona_id
-    WHERE e.grupo_id = :g
-    ORDER BY per.nombre
-";
-$stE = $pdo->prepare($sqlEst);
-$stE->execute([':g' => (int)$clase['grupo_id']]);
-$estudiantes = $stE->fetchAll();
-       
+        // === LISTA DE ESTUDIANTES POR GRUPO DE LA CLASE ===
+        $sqlEst = "
+            SELECT 
+                e.id,
+                e.NIE AS nie,
+                per.nombre AS nombre
+            FROM estudiantes e
+            JOIN personas per ON per.id = e.persona_id
+            WHERE e.grupo_id = :g
+            ORDER BY per.nombre
+        ";
+        $stE = $pdo->prepare($sqlEst);
+        $stE->execute([':g' => (int)$clase['grupo_id']]);
+        $estudiantes = $stE->fetchAll();
 
-        // Asistencias de HOY (tu esquema usa columna 'fecha' generada desde registrada_en)
-        $hoy = date('Y-m-d');
+        // Fecha seleccionada (GET) o hoy
+        $fechaSel = trim((string)($_GET['fecha'] ?? ''));
+        if ($fechaSel === '' || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fechaSel)) {
+            $fechaSel = date('Y-m-d');
+        }
+
+        // Asistencias de la fecha (columna 'fecha' es generada)
         $stA = $pdo->prepare("
             SELECT estudiante_id, estado
             FROM asistencias_clase
-            WHERE clase_id=:c AND fecha=:f
+            WHERE clase_id = :c AND fecha = :f
         ");
-        $stA->execute([':c'=>$claseId, ':f'=>$hoy]);
-        $asisHoy = [];
+        $stA->execute([':c'=>$claseId, ':f'=>$fechaSel]);
+        $asisDeFecha = [];
         foreach ($stA->fetchAll() as $r) {
-            $asisHoy[(int)$r['estudiante_id']] = $r['estado'];
+            $asisDeFecha[(int)$r['estudiante_id']] = $r['estado'];
         }
 
         // Variables para la vista
-        $claseIdView     = $claseId;
-        $asignaturaView  = $asignaturaNombre;
+        $claseIdView    = $claseId;
+        $asignaturaView = $asignaturaNombre;
+        $fechaView      = $fechaSel;
 
         // Vista existente en tu proyecto
         require __DIR__ . '/../views/Docentes/asistencias.php';
@@ -166,13 +171,24 @@ $estudiantes = $stE->fetchAll();
 
         $valid = ['presente','ausente','justificado'];
 
-        $sql = "INSERT INTO asistencias_clase (clase_id, estudiante_id, fecha, estado, observacion, registrado_por, registrada_en)
-                VALUES (:clase_id, :est_id, :fecha, :estado, :obs, :user, NOW())
-                ON DUPLICATE KEY UPDATE estado=VALUES(estado), observacion=VALUES(observacion), registrado_por=VALUES(registrado_por)";
+        // Normalizamos la fecha seleccionada a un DATETIME para registrada_en
+        // (fecha generada = DATE(registrada_en))
+        $fecha_dt = $fecha . ' 12:00:00';
+
+        // IMPORTANTE: No incluir 'fecha' (columna generada) en el INSERT/UPDATE
+        $sql = "INSERT INTO asistencias_clase
+                    (clase_id, estudiante_id, estado, observacion, registrado_por, registrada_en)
+                VALUES
+                    (:clase_id, :est_id, :estado, :obs, :user, :fecha_dt)
+                ON DUPLICATE KEY UPDATE
+                    estado = VALUES(estado),
+                    observacion = VALUES(observacion),
+                    registrado_por = VALUES(registrado_por),
+                    registrada_en = VALUES(registrada_en)";
         $st  = $pdo->prepare($sql);
         $user_id = (int)($_SESSION['user_id'] ?? 0);
 
-        $okCount = 0; 
+        $okCount = 0;
         $skip = 0;
 
         foreach ($ids as $est_id) {
@@ -184,10 +200,10 @@ $estudiantes = $stE->fetchAll();
             $st->execute([
                 ':clase_id' => $clase_id,
                 ':est_id'   => $eid,
-                ':fecha'    => $fecha,
                 ':estado'   => $estado,
                 ':obs'      => ($obs !== '' ? $obs : null),
-                ':user'     => $user_id ?: null
+                ':user'     => ($user_id > 0 ? $user_id : null),
+                ':fecha_dt' => $fecha_dt,
             ]);
             $okCount++;
         }

@@ -28,28 +28,37 @@ class Estudiante {
 
     /** Cuenta estudiantes (buscador por nombre, NIE, grado, sección) */
     public function contar(string $q = ''): int {
+        $q = trim($q);
+
         if ($q !== '') {
             $like = '%' . $q . '%';
             $sql = "SELECT COUNT(*) AS c
                       FROM estudiantes e
                       JOIN personas p ON p.id = e.persona_id
-                 LEFT JOIN grupos   g ON g.id = e.grupo_id       -- 👈 LEFT JOIN
-                     WHERE p.nombre LIKE :q
-                        OR e.NIE    LIKE :q
-                        OR g.grado  LIKE :q
-                        OR g.seccion LIKE :q";
+                 LEFT JOIN grupos   g ON g.id = e.grupo_id
+                     WHERE p.nombre  LIKE :q1
+                        OR e.NIE     LIKE :q2
+                        OR g.grado   LIKE :q3
+                        OR g.seccion LIKE :q4";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->bindValue(':q', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q1', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q2', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q3', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q4', $like, PDO::PARAM_STR);
             $stmt->execute();
         } else {
+            // Sin filtro: cuenta todo rápido
             $stmt = $this->pdo->query("SELECT COUNT(*) AS c FROM estudiantes");
         }
+
         $row = $stmt->fetch();
         return (int)($row['c'] ?? 0);
     }
 
     /** Listado paginado (incluye estudiantes sin grupo) */
     public function listar(string $q = '', int $limit = 10, int $offset = 0): array {
+        $q = trim($q);
+
         if ($q !== '') {
             $like = '%' . $q . '%';
             $sql = "SELECT e.id, e.NIE, e.estado, e.persona_id, e.grupo_id,
@@ -57,28 +66,34 @@ class Estudiante {
                            g.grado, g.seccion
                       FROM estudiantes e
                       JOIN personas p ON p.id = e.persona_id
-                 LEFT JOIN grupos   g ON g.id = e.grupo_id      -- 👈 LEFT JOIN
-                     WHERE p.nombre LIKE :q
-                        OR e.NIE    LIKE :q
-                        OR g.grado  LIKE :q
-                        OR g.seccion LIKE :q
+                 LEFT JOIN grupos   g ON g.id = e.grupo_id
+                     WHERE p.nombre  LIKE :q1
+                        OR e.NIE     LIKE :q2
+                        OR g.grado   LIKE :q3
+                        OR g.seccion LIKE :q4
                   ORDER BY (e.grupo_id IS NULL) DESC, p.nombre ASC
                      LIMIT :lim OFFSET :off";
             $stmt = $this->pdo->prepare($sql);
-            $stmt->bindValue(':q', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q1', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q2', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q3', $like, PDO::PARAM_STR);
+            $stmt->bindValue(':q4', $like, PDO::PARAM_STR);
         } else {
             $sql = "SELECT e.id, e.NIE, e.estado, e.persona_id, e.grupo_id,
                            p.nombre, p.fecha_nacimiento, p.telefono, p.correo,
                            g.grado, g.seccion
                       FROM estudiantes e
                       JOIN personas p ON p.id = e.persona_id
-                 LEFT JOIN grupos   g ON g.id = e.grupo_id      -- 👈 LEFT JOIN
+                 LEFT JOIN grupos   g ON g.id = e.grupo_id
                   ORDER BY (e.grupo_id IS NULL) DESC, p.nombre ASC
                      LIMIT :lim OFFSET :off";
             $stmt = $this->pdo->prepare($sql);
         }
+
+        // Paginación como enteros
         $stmt->bindValue(':lim', max(0, $limit), PDO::PARAM_INT);
         $stmt->bindValue(':off', max(0, $offset), PDO::PARAM_INT);
+
         $stmt->execute();
         return $stmt->fetchAll();
     }
@@ -138,7 +153,7 @@ class Estudiante {
                        g.grado, g.seccion
                   FROM estudiantes e
                   JOIN personas p ON p.id = e.persona_id
-             LEFT JOIN grupos   g ON g.id = e.grupo_id          -- 👈 LEFT JOIN
+             LEFT JOIN grupos   g ON g.id = e.grupo_id
                  WHERE e.id = :id";
         $st = $this->pdo->prepare($sql);
         $st->execute(['id' => $id]);
