@@ -55,11 +55,6 @@ class ClasesController {
     /* =========================
        Helpers de asistencia/faltas
        ========================= */
-
-    /**
-     * Catálogo de tipos de falta según tu esquema:
-     * tipos_falta(id, codigo, descripcion, tipo ENUM('leve','grave','muy grave'), sancion)
-     */
     private function tiposFalta(PDO $pdo): array {
         $fallback = [1 => 'Leve', 2 => 'Grave', 3 => 'Muy grave'];
         try {
@@ -71,7 +66,7 @@ class ClasesController {
                 $id   = (int)$r['id'];
                 $text = $r['tipo'] ?: ($r['descripcion'] ?? '');
                 if ($text === '') $text = 'Tipo '.$id;
-                $map[$id] = mb_convert_case($text, MB_CASE_TITLE, "UTF-8"); // “leve” -> “Leve”
+                $map[$id] = mb_convert_case($text, MB_CASE_TITLE, "UTF-8");
             }
             return $map ?: $fallback;
         } catch (Throwable $e) {
@@ -79,10 +74,6 @@ class ClasesController {
         }
     }
 
-    /**
-     * Asistencias del día para la clase.
-     * Tu tabla tiene columnas: registrada_en (DATETIME) y estado (ENUM).
-     */
     private function asistenciasDelDia(PDO $pdo, int $claseId, string $fecha): array {
         try {
             $st = $pdo->prepare(
@@ -98,7 +89,7 @@ class ClasesController {
             foreach ($st->fetchAll() as $r) {
                 $map[(int)$r['estudiante_id']] = [
                     'tipo'        => $r['tipo'],
-                    'observacion' => $r['observacion'] // será NULL
+                    'observacion' => $r['observacion']
                 ];
             }
             return $map;
@@ -124,9 +115,6 @@ class ClasesController {
         return $res;
     }
 
-    /**
-     * Faltas/Incidentes del día: ahora lee de incidentes_estudiantes + tipos_falta
-     */
     private function faltasDelDia(PDO $pdo, int $claseId, string $fecha): array {
         try {
             $sql = "SELECT  ie.id,
@@ -150,7 +138,7 @@ class ClasesController {
     }
 
     /* =========================
-       Listado
+       Listado (ADMIN)
        ========================= */
     public function index(): void {
         require_login(); require_admin();
@@ -158,6 +146,7 @@ class ClasesController {
         $mClase = new Clase($pdo);
 
         $q      = trim((string)($_GET['q'] ?? ''));
+        // FIX: coalesce antes de castear para evitar Undefined array key "page"
         $page   = max(1, (int)($_GET['page'] ?? 1));
         $limit  = 10;
         $offset = ($page - 1) * $limit;
@@ -170,7 +159,7 @@ class ClasesController {
     }
 
     /* =========================
-       Detalle (Ver clase) — vista limpia
+       Detalle (ADMIN)
        ========================= */
     public function show(): void {
         require_login(); require_admin();
@@ -192,7 +181,7 @@ class ClasesController {
     }
 
     /* =========================
-       Nueva vista: Asistencia y Reporte
+       Asistencia (ADMIN)
        ========================= */
     public function asistencia(): void {
         require_login(); require_admin();
@@ -201,7 +190,7 @@ class ClasesController {
         if ($id <= 0) { header('Location: index.php?action=clases_index'); exit; }
 
         $mClase = new Clase($pdo);
-        $clase = method_exists($mClase, 'obtenerDetalle') ? $mClase->obtenerDetalle($id) : null;
+        $clase  = method_exists($mClase, 'obtenerDetalle') ? $mClase->obtenerDetalle($id) : null;
         if (!$clase || empty($clase['grupo_id'])) {
             $_SESSION['flash'] = ['type'=>'error','messages'=>['Clase o grupo no encontrado.']];
             header('Location: index.php?action=clases_index'); exit;
@@ -210,17 +199,17 @@ class ClasesController {
                      ? $mClase->estudiantesDeGrupo((int)$clase['grupo_id'])
                      : [];
 
-        $fecha = $_GET['fecha'] ?? date('Y-m-d');
-        $asistencias = $this->asistenciasDelDia($pdo, $id, $fecha);
-        $resumenAsis = $this->resumenAsistencias($pdo, $id, $fecha);
-        $tiposFalta  = $this->tiposFalta($pdo);
-        $faltasDia   = $this->faltasDelDia($pdo, $id, $fecha);
+        $fecha        = $_GET['fecha'] ?? date('Y-m-d');
+        $asistencias  = $this->asistenciasDelDia($this->pdo(), $id, $fecha);
+        $resumenAsis  = $this->resumenAsistencias($this->pdo(), $id, $fecha);
+        $tiposFalta   = $this->tiposFalta($this->pdo());
+        $faltasDia    = $this->faltasDelDia($this->pdo(), $id, $fecha);
 
         require __DIR__ . '/../views/Clases/asistencia.php';
     }
 
     /* =========================
-       Formularios New/Edit
+       Formularios New/Edit (ADMIN)
        ========================= */
     public function create(): void { $this->new(); }
 
@@ -257,7 +246,7 @@ class ClasesController {
     }
 
     /* =========================
-       Crear / Actualizar
+       Crear / Actualizar / Eliminar (ADMIN)
        ========================= */
     public function store(): void { $this->createPost(); }
 
@@ -267,8 +256,8 @@ class ClasesController {
 
         $pdo = $this->pdo();
 
-        $docente_id    = (int)($_POST['docente_id'] ?? 0);
-        $grupo_id      = (int)($_POST['grupo_id'] ?? 0);
+        $docente_id    = (int)$_POST['docente_id'];
+        $grupo_id      = (int)$_POST['grupo_id'];
         $asignatura_id = ($_POST['asignatura_id'] ?? '') !== '' ? (int)$_POST['asignatura_id'] : null;
 
         $dia = $_POST['dia'] ?? '';
@@ -327,15 +316,15 @@ class ClasesController {
 
         $pdo = $this->pdo();
 
-        $id            = (int)($_POST['id'] ?? 0);
-        $docente_id    = (int)($_POST['docente_id'] ?? 0);
-        $grupo_id      = (int)($_POST['grupo_id'] ?? 0);
+        $id            = (int)$_POST['id'];
+        $docente_id    = (int)$_POST['docente_id'];
+        $grupo_id      = (int)$_POST['grupo_id'];
         $asignatura_id = ($_POST['asignatura_id'] ?? '') !== '' ? (int)$_POST['asignatura_id'] : null;
 
         $dia = $_POST['dia'] ?? '';
         $dia = is_numeric($dia) ? (int)$dia : trim((string)$dia);
 
-        $horario_id    = (int)($_POST['horario_id'] ?? 0);
+        $horario_id    = (int)$_POST['horario_id'];
         $aula          = trim((string)($_POST['aula'] ?? ''));
         if ($aula === '') $aula = null;
 
@@ -366,7 +355,7 @@ class ClasesController {
     }
 
     /* =========================
-       API períodos libres
+       API períodos libres (ADMIN)
        ========================= */
     public function horariosDisponibles(): void {
         require_login(); require_admin();
@@ -404,5 +393,147 @@ class ClasesController {
             ':aula'      => $aula
         ]);
         echo json_encode($st->fetchAll(PDO::FETCH_ASSOC));
+    }
+
+    /* =========================
+       DOCENTE
+       ========================= */
+    private function docenteIdDesdeSesion(PDO $pdo): ?int {
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) return null;
+
+        $sql = "SELECT d.id
+                  FROM usuarios u
+                  JOIN docentes d ON d.persona_id = u.persona_id
+                 WHERE u.id = :user_id
+                 LIMIT 1";
+        $st = $pdo->prepare($sql);
+        $st->execute([':user_id' => $userId]);
+        $id = $st->fetchColumn();
+
+        return $id ? (int)$id : null;
+    }
+
+    public function misClases(): void {
+        require_login();
+        if (($_SESSION['rol'] ?? '') !== 'docente') {
+            $_SESSION['error'] = 'Solo docentes.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+
+        $pdo = $this->pdo();
+        $docenteId = $this->docenteIdDesdeSesion($pdo);
+        if (!$docenteId) {
+            $_SESSION['error'] = 'No se pudo determinar el docente.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+
+        $sql = "SELECT 
+                    c.id,
+                    COALESCE(pd.nombre,'(Sin docente)')            AS docente,
+                    COALESCE(a.nombre,'—')                         AS asignatura,
+                    CONCAT(g.grado,' ',g.seccion)                  AS grupo,
+                    g.anio_lectivo,
+                    c.dia,
+                    c.aula,
+                    DATE_FORMAT(h.hora_inicio,'%H:%i')             AS hora_inicio,
+                    DATE_FORMAT(h.hora_fin,'%H:%i')                AS hora_fin
+                FROM clases c
+           LEFT JOIN docentes d   ON d.id  = c.docente_id
+           LEFT JOIN personas pd  ON pd.id = d.persona_id
+           LEFT JOIN grupos g     ON g.id  = c.grupo_id
+           LEFT JOIN asignaturas a ON a.id = c.asignatura_id
+           LEFT JOIN horarios h   ON h.id  = c.horario_id
+               WHERE c.docente_id = :d
+            ORDER BY h.hora_inicio, c.id";
+        $st = $pdo->prepare($sql);
+        $st->execute([':d'=>$docenteId]);
+        $clases = $st->fetchAll();
+
+        require __DIR__ . '/../views/Docentes/mis_clases.php';
+    }
+
+    public function showDocente(): void {
+        require_login();
+        if (($_SESSION['rol'] ?? '') !== 'docente') {
+            $_SESSION['error'] = 'Solo docentes.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+
+        $pdo     = $this->pdo();
+        $claseId = (int)($_GET['id'] ?? 0);
+        if ($claseId <= 0) { header('Location: index.php?action=docente_clases'); exit; }
+
+        $docenteId = $this->docenteIdDesdeSesion($pdo);
+        if (!$docenteId) {
+            $_SESSION['error'] = 'No se pudo determinar el docente.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+        $st = $pdo->prepare("SELECT 1 FROM clases WHERE id=:c AND docente_id=:d LIMIT 1");
+        $st->execute([':c'=>$claseId, ':d'=>$docenteId]);
+        if (!$st->fetchColumn()) {
+            $_SESSION['error'] = 'No autorizado para esta clase.';
+            header('Location: index.php?action=docente_clases'); exit;
+        }
+
+        $mClase = new Clase($pdo);
+        $clase  = method_exists($mClase, 'obtenerDetalle') ? $mClase->obtenerDetalle($claseId) : null;
+        if (!$clase || empty($clase['grupo_id'])) {
+            $_SESSION['flash'] = ['type'=>'error','messages'=>['Clase o grupo no encontrado.']];
+            header('Location: index.php?action=docente_clases'); exit;
+        }
+        $estudiantes = method_exists($mClase, 'estudiantesDeGrupo')
+            ? $mClase->estudiantesDeGrupo((int)$clase['grupo_id'])
+            : [];
+
+        $isDocente = true;
+        require __DIR__ . '/../views/Clases/show.php';
+    }
+
+    /** =========================
+      * Asistencia (DOCENTE) — misma vista del admin
+      * ========================= */
+    public function asistenciaDocente(): void {
+        require_login();
+        if (($_SESSION['rol'] ?? '') !== 'docente') {
+            $_SESSION['error'] = 'Solo docentes.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+
+        $pdo = $this->pdo();
+
+        $claseId = (int)($_GET['clase_id'] ?? ($_GET['id'] ?? 0));
+        if ($claseId <= 0) { header('Location: index.php?action=docente_clases'); exit; }
+
+        $docenteId = $this->docenteIdDesdeSesion($pdo);
+        if (!$docenteId) {
+            $_SESSION['error'] = 'No se pudo determinar el docente.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+        $st = $pdo->prepare("SELECT 1 FROM clases WHERE id=:c AND docente_id=:d LIMIT 1");
+        $st->execute([':c'=>$claseId, ':d'=>$docenteId]);
+        if (!$st->fetchColumn()) {
+            $_SESSION['error'] = 'No autorizado para esta clase.';
+            header('Location: index.php?action=docente_clases'); exit;
+        }
+
+        $mClase = new Clase($pdo);
+        $clase  = method_exists($mClase, 'obtenerDetalle') ? $mClase->obtenerDetalle($claseId) : null;
+        if (!$clase || empty($clase['grupo_id'])) {
+            $_SESSION['flash'] = ['type'=>'error','messages'=>['Clase o grupo no encontrado.']];
+            header('Location: index.php?action=docente_clases'); exit;
+        }
+        $estudiantes = method_exists($mClase, 'estudiantesDeGrupo')
+            ? $mClase->estudiantesDeGrupo((int)$clase['grupo_id'])
+            : [];
+
+        $fecha        = $_GET['fecha'] ?? date('Y-m-d');
+        $asistencias  = $this->asistenciasDelDia($pdo, $claseId, $fecha);
+        $resumenAsis  = $this->resumenAsistencias($pdo, $claseId, $fecha);
+        $tiposFalta   = $this->tiposFalta($pdo);
+        $faltasDia    = $this->faltasDelDia($pdo, $claseId, $fecha);
+
+        $isDocente = true;
+        require __DIR__ . '/../views/Clases/asistencia.php';
     }
 }

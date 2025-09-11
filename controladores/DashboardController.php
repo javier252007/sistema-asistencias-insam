@@ -4,7 +4,6 @@
 class DashboardController {
     private function requireLogin(): void {
         if (!isset($_SESSION['user_id'])) {
-            // Redirige explícitamente al login del router
             header('Location: index.php?action=login');
             exit;
         }

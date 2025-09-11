@@ -1,7 +1,6 @@
 <?php
 // controladores/DocentesController.php
 // Admin-only: listado + crear + editar + (des)activar docentes
-
 require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../modelos/database.php';
 require_once __DIR__ . '/../modelos/Docente.php';
@@ -147,5 +146,48 @@ class DocentesController {
           : ['type'=>'error','messages'=>['No se pudo cambiar el estado.']];
         header('Location: index.php?action=docentes_index');
         exit;
+    }
+
+    /* =========================
+       DOCENTE: Incidencias propias (corregido)
+       ========================= */
+    public function incidencias(): void {
+        require_login();
+        if (($_SESSION['rol'] ?? '') !== 'docente') {
+            $_SESSION['error'] = 'Solo docentes.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+
+        $pdo = Database::getInstance();
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+
+        // Resolver docente_id vía persona_id
+        $qDoc = "SELECT d.id AS docente_id
+                   FROM usuarios u
+                   JOIN docentes d ON d.persona_id = u.persona_id
+                  WHERE u.id = :user_id
+                  LIMIT 1";
+        $stDoc = $pdo->prepare($qDoc);
+        $stDoc->execute([':user_id' => $userId]);
+        $doc = $stDoc->fetch(PDO::FETCH_ASSOC);
+
+        if (!$doc) { $_SESSION['error']='No se encontró el docente.'; header('Location:index.php?action=dashboard'); exit; }
+        $docenteId = (int)$doc['docente_id'];
+
+        $qInc = "SELECT ie.id, ie.estudiante_id, per.nombre AS estudiante,
+                        COALESCE(NULLIF(tf.tipo,''), tf.descripcion, CONCAT('Tipo ', tf.id)) AS tipo,
+                        ie.observacion, ie.fecha
+                   FROM incidencias_estudiantes ie
+              LEFT JOIN estudiantes e  ON e.id = ie.estudiante_id
+              LEFT JOIN personas   per ON per.id = e.persona_id
+              LEFT JOIN tipos_falta tf ON tf.id = ie.falta_id
+                  WHERE ie.docente_id = :d
+               ORDER BY ie.fecha DESC, ie.id DESC
+                  LIMIT 200";
+        $stInc = $pdo->prepare($qInc);
+        $stInc->execute([':d'=>$docenteId]);
+        $incidencias = $stInc->fetchAll(PDO::FETCH_ASSOC);
+
+        require __DIR__ . '/../views/Docentes/incidencias.php';
     }
 }

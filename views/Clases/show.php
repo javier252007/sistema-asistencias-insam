@@ -11,8 +11,15 @@
 <div class="container">
   <div class="header-row">
     <h1>Clase #<?= (int)$clase['id'] ?></h1>
+
+    <?php
+      // Flag: si no viene desde el controller, lo inferimos por sesión.
+      $isDocente = $isDocente ?? (($_SESSION['rol'] ?? '') === 'docente');
+    ?>
     <a class="btn primary"
-       href="index.php?action=clases_asistencia&id=<?= (int)$clase['id'] ?>&fecha=<?= htmlspecialchars(date('Y-m-d')) ?>">
+       href="<?= $isDocente
+            ? 'index.php?action=docente_asistencias&clase_id='.(int)$clase['id'].'&fecha='.date('Y-m-d')
+            : 'index.php?action=clases_asistencia&id='.(int)$clase['id'].'&fecha='.date('Y-m-d') ?>">
       Asistencia y Reporte
     </a>
   </div>
@@ -48,7 +55,11 @@
             <tr>
               <td><?= htmlspecialchars($e['NIE'] ?? '') ?></td>
               <td><?= htmlspecialchars($e['nombre'] ?? '') ?></td>
-              <td><span class="badge <?= ($e['estado']==='activo') ? 'ok' : 'off' ?>"><?= htmlspecialchars($e['estado']) ?></span></td>
+              <td>
+                <span class="badge <?= ($e['estado'] ?? '') === 'activo' ? 'ok' : 'off' ?>">
+                  <?= htmlspecialchars($e['estado'] ?? '') ?>
+                </span>
+              </td>
               <td><?= htmlspecialchars($e['telefono'] ?? '') ?></td>
               <td><?= htmlspecialchars($e['correo'] ?? '') ?></td>
             </tr>
@@ -58,7 +69,9 @@
     </table>
   </div>
 
-  <p class="mt-10"><a href="index.php?action=clases_index">Volver</a></p>
+  <p class="mt-10">
+    <a href="<?= $isDocente ? 'index.php?action=docente_clases' : 'index.php?action=clases_index' ?>">Volver</a>
+  </p>
 </div>
 </body>
 </html>

@@ -1,4 +1,4 @@
-<?php
+<?php 
 // public/index.php
 
 ini_set('display_errors', 1);
@@ -20,7 +20,6 @@ require_once __DIR__ . '/../controladores/UsuariosController.php';
 require_once __DIR__ . '/../controladores/AsistenciasController.php';
 require_once __DIR__ . '/../controladores/ClasesController.php';
 require_once __DIR__ . '/../controladores/ReportesController.php';
-/* Controladores nuevos usados */
 require_once __DIR__ . '/../controladores/AsistenciasClaseController.php';
 require_once __DIR__ . '/../controladores/FaltasController.php';
 
@@ -42,6 +41,16 @@ function require_admin(): void {
     }
     if (($_SESSION['rol'] ?? '') !== 'admin') {
         $_SESSION['error'] = 'Acceso restringido a administradores.';
+        header('Location: index.php?action=dashboard');
+        exit;
+    }
+}
+/* ===== Helper por roles ===== */
+function require_roles(array $roles): void {
+    require_login();
+    $rol = $_SESSION['rol'] ?? '';
+    if (!in_array($rol, $roles, true)) {
+        $_SESSION['error'] = 'No tienes permisos para acceder a esta sección.';
         header('Location: index.php?action=dashboard');
         exit;
     }
@@ -227,8 +236,8 @@ switch ($action) {
     case 'asistencia_historial_estudiante':
         try { (new AsistenciasController())->historialEstudiante(); }
         catch (Throwable $e) {
-            header('Content-Type: text/plain; charset=utf-8');
-            echo "⚠️ Error en asistencia_historial_estudiante:\n\n{$e->getMessage()}\n\n{$e->getFile()}:{$e->getLine()}";
+            header('Content-Type: application/json; charset=utf-8');
+            echo json_encode(['ok'=>false,'error'=>$e->getMessage()]);
         }
         break;
 
@@ -325,7 +334,7 @@ switch ($action) {
         }
         break;
 
-    /* ---------- REPORTES (limpio) ---------- */
+    /* ---------- REPORTES ---------- */
     case 'reportes':
         require_login();
         $controllerReportes->index();
@@ -352,6 +361,65 @@ switch ($action) {
             (new FaltasController())->store();
         } else {
             header('Location: index.php?action=clases_index');
+        }
+        break;
+
+    /* ===================================================== */
+    /* =============== RUTAS DOCENTE ======================== */
+    /* ===================================================== */
+
+    // Mis clases (docente)
+    case 'docente_clases':
+        require_roles(['docente']);
+        (new ClasesController())->misClases();
+        break;
+
+    case 'docente_clases_show':
+        require_roles(['docente']);
+        (new ClasesController())->showDocente();
+        break;
+
+    // (Se mantiene por compatibilidad; si lo usas, muestra toma de asistencia por clase)
+    case 'docente_asistencias':
+        require_roles(['docente']);
+        (new ClasesController())->asistenciaDocente();
+        break;
+
+    // === ALIAS para el panel del docente (4 tarjetas) ===
+    // Asistencia (tarjeta) -> usa el kiosco existente
+    case 'asistencia':
+        header('Location: index.php?action=asistencia_registro');
+        break;
+
+    // Mis Clases (tarjeta) -> alias legible
+    case 'mis_clases':
+        header('Location: index.php?action=docente_clases');
+        break;
+
+    // Reportes (tarjeta) -> reusa índice general de reportes
+    case 'reportes_docente':
+        header('Location: index.php?action=reportes');
+        break;
+
+    // Perfil (tarjeta)
+    case 'perfil':
+        require_login();
+        $ctrl = new UsuariosController();
+        if (method_exists($ctrl, 'perfil')) { $ctrl->perfil(); }
+        else {
+            $_SESSION['error'] = 'Función no disponible: UsuariosController::perfil()';
+            header('Location: index.php?action=dashboard');
+        }
+        break;
+
+    // (Se conserva por compatibilidad, aunque ya no habrá tarjeta de incidencias)
+    case 'docente_incidencias':
+        require_roles(['docente']);
+        $ctrl = new DocentesController();
+        if (method_exists($ctrl, 'incidencias')) { $ctrl->incidencias(); }
+        else {
+            $_SESSION['error'] = 'Función no disponible: DocentesController::incidencias()';
+            header('Location: index.php?action=dashboard');
         }
         break;
 

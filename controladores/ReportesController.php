@@ -20,8 +20,47 @@ class ReportesController {
         return $this->pdo;
     }
 
-    /* ---------- helpers ---------- */
-    private function listarClases(PDO $pdo): array {
+    /* =========================
+       Helpers de sesión/seguridad
+       ========================= */
+    private function docenteIdDesdeSesion(PDO $pdo): ?int {
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+        if ($userId <= 0) return null;
+        $sql = "SELECT d.id
+                  FROM usuarios u
+                  JOIN docentes d ON d.persona_id = u.persona_id
+                 WHERE u.id = :uid
+                 LIMIT 1";
+        $st = $pdo->prepare($sql);
+        $st->execute([':uid'=>$userId]);
+        $id = $st->fetchColumn();
+        return $id ? (int)$id : null;
+    }
+
+    private function assertClasePerteneceADocente(PDO $pdo, int $claseId, int $docenteId): void {
+        if ($claseId <= 0) return;
+        $st = $pdo->prepare("SELECT 1 FROM clases WHERE id=:c AND docente_id=:d LIMIT 1");
+        $st->execute([':c'=>$claseId, ':d'=>$docenteId]);
+        if (!$st->fetchColumn()) {
+            $_SESSION['error'] = 'No autorizado para esa clase.';
+            header('Location: index.php?action=reportes');
+            exit;
+        }
+    }
+
+    /* =========================
+       Catálogo de clases
+       - Si $docenteId es null => todas (admin)
+       - Si $docenteId tiene valor => solo del docente
+       ========================= */
+    private function listarClases(PDO $pdo, ?int $docenteId = null): array {
+        $where = '';
+        $params = [];
+        if ($docenteId) {
+            $where = 'WHERE c.docente_id = :d';
+            $params[':d'] = $docenteId;
+        }
+
         $sql = "SELECT  c.id,
                         g.grado, g.seccion, g.anio_lectivo,
                         a.nombre AS asignatura,
@@ -33,8 +72,11 @@ class ReportesController {
              LEFT JOIN horarios h    ON h.id = c.horario_id
              LEFT JOIN docentes d    ON d.id = c.docente_id
              LEFT JOIN personas p    ON p.id = d.persona_id
+                {$where}
               ORDER BY g.grado, g.seccion, h.hora_inicio";
-        $rows = $pdo->query($sql)->fetchAll();
+        $st = $pdo->prepare($sql);
+        $st->execute($params);
+        $rows = $st->fetchAll();
         foreach ($rows as &$r) {
             $r['label'] = trim(sprintf(
                 "Clase #%d — %s %s · %s · %s-%s · %s",
@@ -49,7 +91,9 @@ class ReportesController {
         return $rows;
     }
 
-    /* ===== Asistencia por clase ===== */
+    /* =========================
+       Consultas de datos
+       ========================= */
     private function asistenciasDeClase(PDO $pdo, int $claseId, ?string $desde = null, ?string $hasta = null): array {
         $params = [':c'=>$claseId];
         $where  = "ac.clase_id = :c";
@@ -71,7 +115,6 @@ class ReportesController {
         return $st->fetchAll();
     }
 
-    /* ===== Incidentes: RESUMEN (una fila por estudiante) ===== */
     private function incidentesResumenPorClase(PDO $pdo, int $claseId, ?string $desde = null, ?string $hasta = null): array {
         $params = [':c'=>$claseId];
         $where  = "ie.clase_id = :c";
@@ -92,7 +135,6 @@ class ReportesController {
         $st->execute($params);
         $rows = $st->fetchAll();
 
-        // formateo de última fecha/hora
         foreach ($rows as &$r) {
             if (!empty($r['ultima_ts'])) {
                 $dt = explode(' ', $r['ultima_ts']);
@@ -106,7 +148,6 @@ class ReportesController {
         return $rows;
     }
 
-    /* ===== Incidentes: HISTORIAL DETALLADO de un estudiante ===== */
     private function incidentesHistorialEstudiante(PDO $pdo, int $claseId, int $estudianteId, ?string $desde = null, ?string $hasta = null): array {
         $params = [':c'=>$claseId, ':e'=>$estudianteId];
         $where  = "ie.clase_id = :c AND ie.estudiante_id = :e";
@@ -130,17 +171,37 @@ class ReportesController {
         return $rows;
     }
 
-    /* ---------- vista principal ---------- */
+    /* =========================
+       INDEX (Admin y Docente)
+       ========================= */
     public function index(): void {
-        require_login(); require_admin();
+        require_login();
         $pdo = $this->pdo();
 
-        $clases = $this->listarClases($pdo);
+        $rol = $_SESSION['rol'] ?? '';
+        $docenteId = null;
+        if ($rol === 'docente') {
+            $docenteId = $this->docenteIdDesdeSesion($pdo);
+            if (!$docenteId) {
+                $_SESSION['error'] = 'No se pudo determinar el docente.';
+                header('Location: index.php?action=dashboard'); exit;
+            }
+        } elseif ($rol !== 'admin') {
+            // Otros roles no acceden (ajusta si quieres permitir orientador/directora)
+            require_admin();
+        }
 
-        /* --- parámetros Asistencia --- */
+        // Clases visibles según el rol
+        $clases = $this->listarClases($pdo, $docenteId);
+
+        // Panel 1: Asistencia por clase
         $clase_id_a = isset($_GET['clase_id_a']) ? (int)$_GET['clase_id_a'] : 0;
         $desde_a    = $_GET['desde_a'] ?? null; if ($desde_a==='') $desde_a = null;
         $hasta_a    = $_GET['hasta_a'] ?? null; if ($hasta_a==='') $hasta_a = null;
+
+        if ($rol === 'docente' && $clase_id_a > 0) {
+            $this->assertClasePerteneceADocente($pdo, $clase_id_a, $docenteId);
+        }
 
         $asisResultados = [];
         $claseSelA      = null;
@@ -150,10 +211,14 @@ class ReportesController {
             foreach ($clases as $c) if ((int)$c['id'] === $clase_id_a) { $claseSelA = $c; break; }
         }
 
-        /* --- parámetros Incidentes (resumen) --- */
+        // Panel 2: Incidentes por clase (resumen)
         $clase_id_i = isset($_GET['clase_id_i']) ? (int)$_GET['clase_id_i'] : 0;
         $desde_i    = $_GET['desde_i'] ?? null; if ($desde_i==='') $desde_i = null;
         $hasta_i    = $_GET['hasta_i'] ?? null; if ($hasta_i==='') $hasta_i = null;
+
+        if ($rol === 'docente' && $clase_id_i > 0) {
+            $this->assertClasePerteneceADocente($pdo, $clase_id_i, $docenteId);
+        }
 
         $incResumen = [];
         $claseSelI  = null;
@@ -166,25 +231,45 @@ class ReportesController {
         require __DIR__ . '/../views/Reportes/index.php';
     }
 
-    /* ---------- vista historial por estudiante ---------- */
+    /* =========================
+       Historial de incidentes (Admin y Docente)
+       ========================= */
     public function incidentesHistorial(): void {
-        require_login(); require_admin();
+        require_login();
         $pdo = $this->pdo();
 
-        $clases = $this->listarClases($pdo);
+        $rol = $_SESSION['rol'] ?? '';
+        $docenteId = null;
+        if ($rol === 'docente') {
+            $docenteId = $this->docenteIdDesdeSesion($pdo);
+            if (!$docenteId) {
+                $_SESSION['error']='No se pudo determinar el docente.';
+                header('Location:index.php?action=dashboard'); exit;
+            }
+        } elseif ($rol !== 'admin') {
+            require_admin();
+        }
+
+        $clases = $this->listarClases($pdo, $docenteId);
 
         $clase_id     = isset($_GET['clase_id']) ? (int)$_GET['clase_id'] : 0;
         $estudianteId = isset($_GET['estudiante_id']) ? (int)$_GET['estudiante_id'] : 0;
         $desde        = $_GET['desde'] ?? null; if ($desde==='') $desde = null;
         $hasta        = $_GET['hasta'] ?? null; if ($hasta==='') $hasta = null;
 
+        if ($rol === 'docente' && $clase_id > 0) {
+            $this->assertClasePerteneceADocente($pdo, $clase_id, $docenteId);
+        }
+
         $claseSel = null;
         foreach ($clases as $c) if ((int)$c['id'] === $clase_id) { $claseSel = $c; break; }
 
-        // nombre del estudiante
         $estudianteNombre = null;
         if ($estudianteId > 0) {
-            $stn = $pdo->prepare("SELECT per.nombre FROM estudiantes e JOIN personas per ON per.id=e.persona_id WHERE e.id=:e");
+            $stn = $pdo->prepare("SELECT per.nombre
+                                    FROM estudiantes e
+                                    JOIN personas per ON per.id=e.persona_id
+                                   WHERE e.id=:e");
             $stn->execute([':e'=>$estudianteId]);
             $estudianteNombre = $stn->fetchColumn();
         }
@@ -195,5 +280,56 @@ class ReportesController {
         }
 
         require __DIR__ . '/../views/Reportes/incidentes_historial.php';
+    }
+
+    /* =========================
+       DOCENTE: KPIs propios (se conserva)
+       ========================= */
+    public function docente(): void {
+        require_login();
+        if (($_SESSION['rol'] ?? '') !== 'docente') {
+            $_SESSION['error']='Solo docentes.'; header('Location:index.php?action=dashboard'); exit;
+        }
+        $pdo = $this->pdo();
+        $userId = (int)($_SESSION['user_id'] ?? 0);
+
+        // Resolver docente_id vía persona_id
+        $qDoc = "SELECT d.id AS docente_id
+                   FROM usuarios u
+                   JOIN docentes d ON d.persona_id = u.persona_id
+                  WHERE u.id = :user_id
+                  LIMIT 1";
+        $stDoc = $pdo->prepare($qDoc);
+        $stDoc->execute([':user_id'=>$userId]);
+        $doc = $stDoc->fetch(PDO::FETCH_ASSOC);
+        if (!$doc) { $_SESSION['error']='No se encontró el docente.'; header('Location:index.php?action=dashboard'); exit; }
+        $docenteId = (int)$doc['docente_id'];
+
+        $kpis = ['clases'=>0,'estudiantes'=>0,'asistencia_hoy'=>null];
+
+        $st1 = $pdo->prepare("SELECT COUNT(*) FROM clases WHERE docente_id=:d");
+        $st1->execute([':d'=>$docenteId]); 
+        $kpis['clases'] = (int)$st1->fetchColumn();
+
+        $st2 = $pdo->prepare("SELECT COUNT(DISTINCT ce.estudiante_id)
+                                FROM clases c
+                                JOIN clases_estudiantes ce ON ce.clase_id=c.id
+                               WHERE c.docente_id=:d");
+        $st2->execute([':d'=>$docenteId]); 
+        $kpis['estudiantes'] = (int)$st2->fetchColumn();
+
+        $st3 = $pdo->prepare("SELECT 
+                                SUM(CASE WHEN a.estado='presente' THEN 1 ELSE 0 END) AS p,
+                                COUNT(*) AS total
+                               FROM asistencias_clase a
+                               JOIN clases c ON c.id=a.clase_id
+                              WHERE c.docente_id=:d AND DATE(a.registrada_en)=CURDATE()");
+        $st3->execute([':d'=>$docenteId]);
+        $r3 = $st3->fetch(PDO::FETCH_ASSOC);
+        if ($r3 && (int)$r3['total']>0) {
+            $kpis['asistencia_hoy'] = round(($r3['p']*100)/$r3['total'],1);
+        }
+
+        require __DIR__ . '/../views/Reportes/docente.php';
     }
 }

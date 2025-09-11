@@ -11,7 +11,6 @@ class UsuariosController {
         $this->usuarioModel = new Usuario($pdo);
     }
 
-    /** Middleware simple: sólo admin */
     private function requireAdmin(): void {
         if (empty($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
             $_SESSION['error'] = 'Acceso restringido a administradores.';
@@ -79,7 +78,6 @@ class UsuariosController {
         }
     }
 
-    /** Mostrar formulario de edición */
     public function edit(): void {
         $this->requireAdmin();
 
@@ -100,7 +98,6 @@ class UsuariosController {
         require __DIR__ . '/../views/Usuarios/edit.php';
     }
 
-    /** Actualizar usuario (username/rol y contraseña opcional) */
     public function update(): void {
         $this->requireAdmin();
 
@@ -111,7 +108,7 @@ class UsuariosController {
 
         $id         = (int)($_POST['id'] ?? 0);
         $usuario    = trim($_POST['usuario'] ?? '');
-        $contrasena = trim($_POST['contrasena'] ?? ''); // opcional
+        $contrasena = trim($_POST['contrasena'] ?? '');
         $rol        = trim($_POST['rol'] ?? '');
 
         if ($id <= 0 || $usuario === '' || $rol === '') {
@@ -170,5 +167,66 @@ class UsuariosController {
         }
         header('Location: index.php?action=usuarios_index');
         exit;
+    }
+
+    /* =========================
+       PERFIL (nuevo/corregido)
+       ========================= */
+    public function perfil(): void {
+        if (empty($_SESSION['user_id'])) {
+            header('Location: index.php?action=login'); exit;
+        }
+
+        $pdo = Database::getInstance();
+        $userId = (int)$_SESSION['user_id'];
+
+        $sql = "SELECT 
+                    u.id,
+                    u.usuario,
+                    u.rol,
+                    u.persona_id,
+                    p.nombre   AS nombre,
+                    p.correo   AS correo,
+                    p.telefono AS telefono,
+                    p.direccion AS direccion
+                FROM usuarios u
+           LEFT JOIN personas p ON p.id = u.persona_id
+               WHERE u.id = :id
+               LIMIT 1";
+        $st = $pdo->prepare($sql);
+        $st->execute([':id' => $userId]);
+        $data = $st->fetch(PDO::FETCH_ASSOC);
+
+        if (!$data) {
+            $_SESSION['error'] = 'Usuario no encontrado.';
+            header('Location: index.php?action=dashboard'); exit;
+        }
+
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $nombre    = trim($_POST['nombre']    ?? '');
+            $correo    = trim($_POST['correo']    ?? '');
+            $telefono  = trim($_POST['telefono']  ?? '');
+            $direccion = trim($_POST['direccion'] ?? '');
+
+            if ((int)$data['persona_id'] > 0) {
+                $up = $pdo->prepare("UPDATE personas
+                                        SET nombre = :n, correo = :c, telefono = :t, direccion = :d
+                                      WHERE id = :pid");
+                $up->execute([
+                    ':n' => $nombre,
+                    ':c' => ($correo !== '' ? $correo : null),
+                    ':t' => ($telefono !== '' ? $telefono : null),
+                    ':d' => ($direccion !== '' ? $direccion : null),
+                    ':pid' => (int)$data['persona_id']
+                ]);
+                $_SESSION['success'] = 'Perfil actualizado.';
+                header('Location: index.php?action=perfil'); exit;
+            } else {
+                $_SESSION['error'] = 'No hay persona asociada a este usuario.';
+                header('Location: index.php?action=perfil'); exit;
+            }
+        }
+
+        require __DIR__ . '/../views/Usuarios/perfil.php';
     }
 }

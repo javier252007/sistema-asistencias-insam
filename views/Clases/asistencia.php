@@ -17,10 +17,21 @@
     <?php unset($_SESSION['flash_msg']); ?>
   <?php endif; ?>
 
+  <?php
+    // Detectar si la vista está siendo usada por un DOCENTE
+    $isDocente = $isDocente ?? (($_SESSION['rol'] ?? '') === 'docente');
+  ?>
+
   <div class="header-row">
     <h1>Asistencia y Reporte – Clase #<?= (int)$clase['id'] ?></h1>
     <div style="display:flex;gap:.5rem">
-      <a class="btn" href="index.php?action=clases_show&id=<?= (int)$clase['id'] ?>">Volver a la clase</a>
+      <!-- Volver según rol -->
+      <a class="btn"
+         href="<?= $isDocente
+                ? 'index.php?action=docente_clases_show&id='.(int)$clase['id']
+                : 'index.php?action=clases_show&id='.(int)$clase['id'] ?>">
+        Volver a la clase
+      </a>
     </div>
   </div>
 
@@ -34,18 +45,24 @@
   </div>
 
   <?php
-    $fecha = $fecha ?? ($_GET['fecha'] ?? date('Y-m-d'));
-    $asistencias = $asistencias ?? [];
-    $resumenAsis = $resumenAsis ?? ['presente'=>0,'ausente'=>0,'justificado'=>0];
-    $tiposFalta  = $tiposFalta  ?? [1=>'Leve',2=>'Grave',3=>'Muy grave'];
-    $faltasDia   = $faltasDia   ?? [];
+    $fecha        = $fecha        ?? ($_GET['fecha'] ?? date('Y-m-d'));
+    $asistencias  = $asistencias  ?? [];
+    $resumenAsis  = $resumenAsis  ?? ['presente'=>0,'ausente'=>0,'justificado'=>0];
+    $tiposFalta   = $tiposFalta   ?? [1=>'Leve',2=>'Grave',3=>'Muy grave'];
+    $faltasDia    = $faltasDia    ?? [];
   ?>
 
   <!-- Filtro de fecha + Resumen -->
   <form method="get" action="index.php" class="header-row">
     <div style="display:flex;gap:.5rem;align-items:center">
-      <input type="hidden" name="action" value="clases_asistencia">
-      <input type="hidden" name="id" value="<?= (int)$clase['id'] ?>">
+      <?php if ($isDocente): ?>
+        <input type="hidden" name="action" value="docente_asistencias">
+        <input type="hidden" name="clase_id" value="<?= (int)$clase['id'] ?>">
+      <?php else: ?>
+        <input type="hidden" name="action" value="clases_asistencia">
+        <input type="hidden" name="id" value="<?= (int)$clase['id'] ?>">
+      <?php endif; ?>
+
       <label><strong>Fecha:</strong></label>
       <input type="date" name="fecha" value="<?= htmlspecialchars($fecha) ?>">
       <button class="btn" type="submit">Cambiar</button>
@@ -57,7 +74,7 @@
     </div>
   </form>
 
-  <!-- Acción MASIVA: aplica a TODOS sin checkboxes -->
+  <!-- Acción MASIVA -->
   <?php if (!empty($estudiantes)): ?>
   <form method="post" action="index.php?action=asistencias_store" class="mt-06">
     <input type="hidden" name="clase_id" value="<?= (int)$clase['id'] ?>">
@@ -101,7 +118,7 @@
           <tr><td colspan="7" class="text-center muted">No hay estudiantes en este grupo.</td></tr>
         <?php else: ?>
           <?php foreach ($estudiantes as $e):
-            $eid = (int)$e['id'];
+            $eid     = (int)$e['id'];
             $asisHoy = $asistencias[$eid]['tipo'] ?? null;
             $obsHoy  = $asistencias[$eid]['observacion'] ?? null;
           ?>
